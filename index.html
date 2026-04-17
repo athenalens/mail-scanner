@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapid Mail Risk Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#0a0c0f;--sf:#111418;--sf2:#1a1e24;--bd:#242830;--bd2:#2e3440;
+  --tx:#c8cdd6;--dm:#5a6070;--br:#e8ecf2;
+  --ac:#00d4ff;--ac-d:rgba(0,212,255,.08);--ac-g:rgba(0,212,255,.15);
+  --wn:#ff9500;--wn-d:rgba(255,149,0,.1);
+  --dg:#ff3b3b;--dg-d:rgba(255,59,59,.08);
+  --ok:#34c759;--ok-d:rgba(52,199,89,.08);
+  --rd:#ff6b6b;--bl:#74b9ff;
+  --mo:'IBM Plex Mono',monospace;--sa:'IBM Plex Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--sa);font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
+.hdr-ic{width:26px;height:26px;background:var(--ac);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.hdr-tt{font-family:var(--mo);font-size:13px;font-weight:600;color:var(--br);letter-spacing:.05em}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.badge{font-family:var(--mo);font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;letter-spacing:.08em}
+.b-p1{background:var(--ac-d);color:var(--ac);border:1px solid rgba(0,212,255,.2)}
+.b-p2{background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
+.b-hi{background:var(--dg-d);color:var(--dg);border:1px solid rgba(255,59,59,.2)}
+.b-me{background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
+.b-lo{background:var(--ok-d);color:var(--ok);border:1px solid rgba(52,199,89,.2)}
+.hdr-sub{font-family:var(--mo);font-size:11px;color:var(--dm)}
+.main{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
+.left{width:300px;min-width:260px;border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);overflow-y:auto}
+/* Setup banner */
+.setup{margin:10px;padding:10px 12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:6px;flex-shrink:0}
+.setup-title{font-family:var(--mo);font-size:10px;color:var(--ac);font-weight:600;letter-spacing:.06em;margin-bottom:6px}
+.setup-step{font-family:var(--mo);font-size:10px;color:var(--dm);line-height:1.7}
+.setup-step b{color:var(--br)}
+.setup-step code{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--ac);font-size:10px}
+/* Drop zone */
+.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;cursor:pointer;transition:all .2s;border:2px dashed transparent;margin:10px;border-radius:8px;min-height:96px;flex-shrink:0}
+.dz.ov{border-color:var(--ac);background:var(--ac-d)}
+.dz-ic{width:44px;height:44px;border:1.5px solid var(--bd2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--dm);background:var(--sf2);transition:all .2s}
+.dz:hover .dz-ic,.dz.ov .dz-ic{border-color:var(--ac);color:var(--ac);box-shadow:0 0 16px var(--ac-g)}
+.dz-tx strong{display:block;color:var(--br);font-weight:500;font-size:13px;margin-bottom:2px;text-align:center}
+.dz-tx span{color:var(--dm);font-size:11px;font-family:var(--mo);display:block;text-align:center}
+input[type=file]{display:none}
+.fc{margin:0 10px 6px;padding:8px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;display:none;flex-shrink:0}
+.fc.on{display:block}
+.fc-n{font-family:var(--mo);font-size:11px;color:var(--ac);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-m{font-family:var(--mo);font-size:10px;color:var(--dm)}
+/* Extraction status */
+.es{margin:0 10px 6px;border-radius:6px;overflow:hidden;display:none;flex-shrink:0}
+.es.on{display:block}
+.es-hdr{display:flex;align-items:center;gap:7px;padding:7px 10px;font-family:var(--mo);font-size:10px;font-weight:600;letter-spacing:.05em;border-bottom:1px solid var(--bd)}
+.es-body{padding:5px 8px;display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto}
+.es.st-run{background:var(--sf2);border:1px solid var(--bd2)}.es.st-run .es-hdr{color:var(--ac)}
+.es.st-ok{background:var(--ok-d);border:1px solid rgba(52,199,89,.2)}.es.st-ok .es-hdr{color:var(--ok)}
+.es.st-warn{background:var(--wn-d);border:1px solid rgba(255,149,0,.25)}.es.st-warn .es-hdr{color:var(--wn)}
+.er{display:flex;align-items:center;gap:7px;padding:4px 5px;border-radius:4px;background:var(--bg)}
+.er-ic{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.er-inf{flex:1;min-width:0}
+.er-lbl{font-family:var(--mo);font-size:10px;color:var(--br);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.er-dt{font-family:var(--mo);font-size:9px;color:var(--dm)}
+.er-tag{font-family:var(--mo);font-size:9px;padding:1px 5px;border-radius:2px;flex-shrink:0;white-space:nowrap}
+.tg-ok{background:var(--ok-d);color:var(--ok)}.tg-run{background:var(--ac-d);color:var(--ac)}.tg-err{background:var(--dg-d);color:var(--dg)}.tg-skip{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)}
+/* Headers */
+.hp{border-top:1px solid var(--bd);padding:10px 12px;display:none;flex-direction:column;gap:5px;flex-shrink:0}
+.hp.on{display:flex}
+.hl{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.hr-r{display:flex;gap:5px}
+.hk{font-family:var(--mo);font-size:10px;color:var(--dm);min-width:52px;flex-shrink:0}
+.hv{font-family:var(--mo);font-size:10px;color:var(--br);word-break:break-all;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.chip{font-family:var(--mo);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
+/* API key */
+.ak-w{margin:8px 10px;padding:9px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;flex-shrink:0}
+.ak-l{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;margin-bottom:4px}
+.ak-r{display:flex;gap:4px}
+.ak-i{flex:1;background:var(--bg);border:1px solid var(--bd2);border-radius:4px;color:var(--br);font-family:var(--mo);font-size:11px;padding:5px 8px;outline:none;transition:border-color .2s}
+.ak-i:focus{border-color:var(--ac)}.ak-i.ok{border-color:var(--ok)}.ak-i.ng{border-color:var(--dg)}
+.ak-t{background:var(--sf);border:1px solid var(--bd2);border-radius:4px;color:var(--dm);cursor:pointer;font-size:11px;padding:3px 6px}
+.ak-h{font-family:var(--mo);font-size:10px;color:var(--dm);margin-top:3px;min-height:13px}
+.ak-h.ok{color:var(--ok)}.ak-h.ng{color:var(--dg)}
+/* Actions */
+.acts{padding:10px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.btn{width:100%;padding:9px 12px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mo);font-size:12px;font-weight:600;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.bp1{background:var(--ac);color:#000}.bp1:not(:disabled):hover{background:#33ddff;box-shadow:0 0 14px var(--ac-g)}
+.bp2{background:transparent;color:var(--wn);border:1px solid rgba(255,149,0,.3)}.bp2:not(:disabled):hover{background:var(--wn-d)}
+.bclr{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2);font-size:11px}.bclr:hover{color:var(--br)}
+/* Right */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ob{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
+.ob-l{font-family:var(--mo);font-size:11px;color:var(--dm);letter-spacing:.05em;text-transform:uppercase}
+.out{flex:1;overflow-y:auto;padding:18px}
+.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:.3}
+.emp-ic{font-size:34px}
+.emp-tx{font-family:var(--mo);font-size:12px;color:var(--dm);text-align:center;line-height:1.8}
+.ld{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px}
+.ld.on{display:flex}
+.sp{position:relative;width:56px;height:56px}
+.sp-r{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--bd2)}
+.sp-r:nth-child(1){border-top-color:var(--ac);animation:sp 1s linear infinite}
+.sp-r:nth-child(2){inset:8px;border-top-color:var(--ac);animation:sp 1.5s linear infinite reverse;opacity:.5}
+@keyframes sp{to{transform:rotate(360deg)}}
+.sp-t{font-family:var(--mo);font-size:12px;color:var(--dm);letter-spacing:.05em}
+.sp-s{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.7;text-align:center;max-width:280px;line-height:1.6}
+.rs{display:none}.rs.on{display:block}
+.sec{margin-bottom:14px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;animation:fu .35s ease forwards;opacity:0}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.sec.c-wn{border-color:rgba(255,149,0,.35)}.sec.c-dg{border-color:rgba(255,59,59,.35)}.sec.c-ok{border-color:rgba(52,199,89,.25)}.sec.c-th{border-color:rgba(0,212,255,.35)}
+.sh{display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--sf2);border-bottom:1px solid var(--bd)}
+.sec.c-wn .sh{background:var(--wn-d)}.sec.c-dg .sh{background:var(--dg-d)}.sec.c-ok .sh{background:var(--ok-d)}.sec.c-th .sh{background:rgba(0,212,255,.06)}
+.si{font-size:13px}.st{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--br);letter-spacing:.04em;flex:1}
+.stag{font-family:var(--mo);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--dm);border:1px solid var(--bd2)}
+.bg-grid{display:grid;grid-template-columns:1fr 1px 1fr}
+.bc{padding:11px 13px}
+.bdv{background:var(--bd);margin:8px 0}
+.bt{font-family:var(--mo);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
+.bja .bt{color:var(--rd);border-color:rgba(255,107,107,.2)}.ben .bt{color:var(--bl);border-color:rgba(116,185,255,.2)}
+.md{font-size:13px;line-height:1.8}
+.md strong{color:var(--br);font-weight:600}
+.md ul{padding-left:16px;margin:4px 0}.md li{margin-bottom:3px}
+.md code{font-family:var(--mo);font-size:11px;background:var(--sf2);padding:1px 5px;border-radius:3px;color:var(--ac)}
+.wl{display:flex;align-items:flex-start;gap:7px;background:var(--wn-d);border:1px solid rgba(255,149,0,.25);border-radius:5px;padding:7px 11px;margin:6px 0;font-family:var(--mo);font-size:11px;color:var(--wn);line-height:1.6}
+@keyframes blink{50%{opacity:0}}
+.spin-sm{display:inline-block;width:9px;height:9px;border:1.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0;vertical-align:middle}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-ic">📡</div>
+  <span class="hdr-tt">RAPID MAIL RISK SCANNER</span>
+  <div class="hdr-r">
+    <span id="pb" class="badge b-p1" style="display:none"></span>
+    <span id="rb" class="badge" style="display:none"></span>
+    <span class="hdr-sub">NTT DC REIT · Executive Decision Support</span>
+  </div>
+</div>
+<div class="main">
+  <div class="left">
+
+    <!-- 使い方ガイド -->
+    <div class="setup" id="setupGuide">
+      <div class="setup-title">⚡ 初回セットアップ（1回だけ）</div>
+      <div class="setup-step">
+        <b>1.</b> Chromeを開く<br>
+        <b>2.</b> URLバーに以下を入力してEnter：<br>
+        <code>chrome://flags/#block-insecure-private-network-requests</code><br>
+        <b>3.</b> <b>Disabled</b> に変更 → 再起動<br>
+        <b>4.</b> このHTMLをダブルクリックで開く<br>
+        <b>5.</b> APIキーを入力してドロップ
+      </div>
+    </div>
+
+    <div class="dz" id="dz">
+      <div class="dz-ic">📨</div>
+      <div class="dz-tx"><strong>.eml をドロップ</strong><span>ドロップで即解析開始</span></div>
+    </div>
+    <input type="file" id="fi" accept=".eml,.msg">
+
+    <div class="fc" id="fc"><div class="fc-n" id="fcn"></div><div class="fc-m" id="fcm"></div></div>
+    <div class="es" id="es"><div class="es-hdr" id="es-hdr"></div><div class="es-body" id="es-body"></div></div>
+
+    <div class="hp" id="hp">
+      <div class="hl">Headers</div>
+      <div id="hrows"></div>
+      <div id="ats" style="display:none;margin-top:5px">
+        <div class="hl" style="margin-bottom:3px">Attachments</div>
+        <div class="chips" id="ach"></div>
+      </div>
+    </div>
+
+    <div class="ak-w">
+      <div class="ak-l">ANTHROPIC API KEY</div>
+      <div class="ak-r">
+        <input type="password" id="aki" class="ak-i" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <button class="ak-t" id="akt">👁</button>
+      </div>
+      <div class="ak-h" id="akh">APIキーを入力してください</div>
+    </div>
+
+    <div class="acts">
+      <button class="btn bp1" id="p1" disabled>⚡ Phase 1 — Rapid Scan</button>
+      <button class="btn bp2" id="p2" disabled>🔬 Phase 2 — Deep Dive + 添付全文</button>
+      <button class="btn bclr" id="cl">✕ クリア</button>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="ob"><span class="ob-l">Analysis Output</span></div>
+    <div class="out" id="out">
+      <div class="emp" id="emp">
+        <div class="emp-ic">📭</div>
+        <div class="emp-tx">.eml をドロップ<br>自動解析が始まります</div>
+      </div>
+      <div class="ld" id="ld">
+        <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
+        <div class="sp-t" id="spt"></div>
+        <div class="sp-s" id="sps"></div>
+      </div>
+      <div class="rs" id="rs"></div>
+    </div>
+  </div>
+</div>
+<script>
+// ── EML PARSER ────────────────────────────────────────────────
+function parseEml(raw){
+  const norm=raw.replace(/\r\n/g,'\n');
+  const out={from:'',to:'',cc:'',subject:'',date:'',textBody:'',htmlBody:'',inlineImages:[],attachments:[],rh:{}};
+  const si=norm.indexOf('\n\n');
+  if(si===-1){out.textBody=norm;return out;}
+  parseHdrs(norm.substring(0,si),out.rh);
+  out.from=r47(out.rh['from']||'');out.to=r47(out.rh['to']||'');
+  out.cc=r47(out.rh['cc']||'');out.subject=r47(out.rh['subject']||'');out.date=out.rh['date']||'';
+  const topCT=out.rh['content-type']||'',bound=getBound(topCT),topEnc=(out.rh['content-transfer-encoding']||'').toLowerCase();
+  if(bound)traverse(norm,bound,out,0);
+  else{const d=decTr(norm.substring(si+2),topEnc,topCT);out.textBody=d;}
+  return out;
+}
+function parseHdrs(block,t){
+  const ls=block.replace(/\r\n/g,'\n').replace(/\n[ \t]+/g,' ').split('\n');
+  for(const l of ls){const ci=l.indexOf(':');if(ci<1)continue;const k=l.substring(0,ci).trim().toLowerCase(),v=l.substring(ci+1).trim();if(!t[k])t[k]=v;}
+}
+function traverse(raw,boundary,out,depth){
+  if(depth>8)return;
+  const parts=splitBound(raw,boundary);
+  for(const part of parts){
+    const ni=part.indexOf('\n\n');if(ni===-1)continue;
+    const hb=part.substring(0,ni),bb=part.substring(ni+2);
+    const h={};parseHdrs(hb,h);
+    const ct=(h['content-type']||'').toLowerCase(),ctR=h['content-type']||'',
+          cd=(h['content-disposition']||'').toLowerCase(),ce=(h['content-transfer-encoding']||'').toLowerCase(),
+          cid=(h['content-id']||'').replace(/[<>]/g,'').trim();
+    const sub=getBound(ct);
+    if(sub){traverse(part,sub,out,depth+1);continue;}
+    const fname=getFname(h);
+    const decoded=decTr(bb,ce,ctR);
+    if(ct.includes('text/plain')&&!cd.includes('attachment')&&!fname){
+      if(decoded.trim().length>out.textBody.trim().length)out.textBody=decoded;
+    } else if(ct.includes('text/html')&&!cd.includes('attachment')&&!fname){
+      if(decoded.trim().length>out.htmlBody.trim().length)out.htmlBody=decoded;
+    } else if(ct.startsWith('image/')){
+      const b64=ce==='base64'?bb.replace(/\s/g,''):'';
+      const mt=ct.split(';')[0].trim(),nm=fname||(cid||'img_'+out.inlineImages.length)+imgExt(mt);
+      if(b64)out.inlineImages.push({cid,name:nm,mimeType:mt,b64});
+    } else if(fname||cd.includes('attachment')){
+      const b64=ce==='base64'?bb.replace(/\s/g,''):null;
+      out.attachments.push({name:fname||'attachment',mimeType:ct.split(';')[0].trim(),enc:ce,data:b64||bb});
+    }
+  }
+}
+function splitBound(raw,boundary){
+  const ls=raw.replace(/\r\n/g,'\n').split('\n'),parts=[];let cur=[],ins=false;
+  const s='--'+boundary,e='--'+boundary+'--';
+  for(const l of ls){
+    const lt=l.trimEnd();
+    if(lt===e){if(ins&&cur.length)parts.push(cur.join('\n'));break;}
+    if(lt===s||l.startsWith(s+' ')||l.startsWith(s+'\t')){if(ins&&cur.length)parts.push(cur.join('\n'));cur=[];ins=true;continue;}
+    if(ins)cur.push(l);
+  }
+  if(ins&&cur.length)parts.push(cur.join('\n'));
+  return parts;
+}
+function getBound(ct){const m=ct.match(/boundary=["']?([^"';\s\r\n]+)["']?/i);return m?m[1].replace(/['"]/g,''):null;}
+function getFname(h){
+  const src=(h['content-disposition']||'')+' '+(h['content-type']||'');
+  const m5=src.match(/filename\*=UTF-8''([^;\s\r\n]+)/i);if(m5){try{return decodeURIComponent(m5[1]);}catch{}}
+  const m=src.match(/filename=["']?([^"';\r\n]+)["']?/i);if(!m)return null;
+  return r47(m[1].trim().replace(/['"]/g,''));
+}
+function decTr(body,enc,ct){
+  enc=(enc||'').toLowerCase().trim();
+  try{
+    if(enc==='base64'){const b=atob(body.replace(/\s/g,''));const cm=ct.match(/charset=["']?([^"';\s]+)/i);return new TextDecoder(cm?cm[1]:'utf-8').decode(new Uint8Array([...b].map(c=>c.charCodeAt(0))));}
+    if(enc==='quoted-printable')return body.replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+  }catch(e){}
+  return body;
+}
+function r47(s){if(!s)return'';return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g,(_,cs,enc,data)=>{try{if(enc.toUpperCase()==='B'){const b=atob(data);if(cs.toLowerCase().replace(/[-_]/g,'').includes('utf8'))return new TextDecoder('utf-8').decode(new Uint8Array([...b].map(c=>c.charCodeAt(0))));return b;}return data.replace(/_/g,' ').replace(/=([0-9A-Fa-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));}catch{return data;}});}
+function imgExt(mt){if(mt.includes('jpeg')||mt.includes('jpg'))return'.jpg';if(mt.includes('png'))return'.png';return'.img';}
+function h2t(html){return html.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<\/div>/gi,'\n').replace(/<\/tr>/gi,'\n').replace(/<\/td>/gi,' | ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\n{3,}/g,'\n\n').trim();}
+
+// ── DOCX EXTRACTOR ────────────────────────────────────────────
+async function extractDocx(b64){
+  try{
+    const bin=atob(b64.replace(/\s/g,''));
+    const bytes=new Uint8Array([...bin].map(c=>c.charCodeAt(0)));
+    const view=new DataView(bytes.buffer);
+    const results=[];let i=0;
+    while(i<bytes.length-4){
+      if(view.getUint32(i,true)===0x04034b50){
+        const fnLen=view.getUint16(i+26,true),exLen=view.getUint16(i+28,true);
+        const cSz=view.getUint32(i+18,true),meth=view.getUint16(i+8,true);
+        const fn=new TextDecoder().decode(bytes.slice(i+30,i+30+fnLen));
+        const ds=i+30+fnLen+exLen;
+        if(fn.match(/word\/(document|comments|footnotes|endnotes)\.xml$/i)){
+          let xd=null;
+          if(meth===0)xd=bytes.slice(ds,ds+cSz);
+          else if(meth===8){try{xd=await inflateRaw(bytes.slice(ds,ds+cSz));}catch(e){}}
+          if(xd){
+            const xml=new TextDecoder('utf-8').decode(xd);
+            const txt=xml.replace(/<w:br[^/]*/gi,' ').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+            if(txt.length>50)results.push(txt);
+          }
+        }
+        i=ds+Math.max(cSz,0);
+      }else i++;
+    }
+    return results.join('\n\n').substring(0,10000)||null;
+  }catch(e){return null;}
+}
+async function inflateRaw(c){
+  const ds=new DecompressionStream('deflate-raw');const w=ds.writable.getWriter();w.write(c);w.close();
+  const r=ds.readable.getReader();const chunks=[];
+  while(true){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+  const tot=chunks.reduce((a,c)=>a+c.length,0);const out=new Uint8Array(tot);let off=0;
+  for(const c of chunks){out.set(c,off);off+=c.length;}return out;
+}
+
+// ── API CALL (direct browser, CORS bypass) ────────────────────
+async function callApi(messages, system, maxTokens){
+  const key=aki.value.trim();
+  // Use fetch with the official browser-direct header
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:maxTokens||4000,system:system,messages:messages})
+  });
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    throw new Error((err.error?.message)||`HTTP ${resp.status}`);
+  }
+  const data=await resp.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.content?.[0]?.text||'';
+}
+
+// ── OCR ───────────────────────────────────────────────────────
+async function ocrImg(b64,mimeType){
+  return callApi([{role:'user',content:[
+    {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
+    {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。レイアウトを保ち、見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
+  ]}],null,2000);
+}
+
+// ── STATE ─────────────────────────────────────────────────────
+let P=null,RAW='',docxTexts={},ocrTexts={},extracting=false;
+const $=id=>document.getElementById(id);
+const dz=$('dz'),fi=$('fi'),fc=$('fc'),fcn=$('fcn'),fcm=$('fcm');
+const es=$('es'),esHdr=$('es-hdr'),esBody=$('es-body');
+const hp=$('hp'),hrows=$('hrows'),ats=$('ats'),ach=$('ach');
+const aki=$('aki'),akt=$('akt'),akh=$('akh');
+const p1=$('p1'),p2=$('p2'),cl=$('cl');
+const pb=$('pb'),rb=$('rb');
+const emp=$('emp'),ld=$('ld'),rs=$('rs'),spt=$('spt'),sps=$('sps');
+const setupGuide=$('setupGuide');
+
+// API key
+const sk=sessionStorage.getItem('rmrs');if(sk){aki.value=sk;vk(sk);}
+aki.addEventListener('input',()=>{sessionStorage.setItem('rmrs',aki.value.trim());vk(aki.value.trim());});
+akt.addEventListener('click',()=>{aki.type=aki.type==='password'?'text':'password';});
+function vk(v){
+  aki.classList.remove('ok','ng');akh.className='ak-h';
+  if(!v){akh.textContent='APIキーを入力してください';return;}
+  if(!v.startsWith('sk-ant-')){aki.classList.add('ng');akh.textContent='⚠ sk-ant- で始まるキーを入力';akh.classList.add('ng');return;}
+  aki.classList.add('ok');akh.textContent='✓ 設定済み（セッション中のみ保持）';akh.classList.add('ok');
+  // Hide setup guide once key is entered
+  if(setupGuide)setupGuide.style.display='none';
+}
+
+// Drop zone
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('ov');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('ov'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('ov');if(e.dataTransfer.files[0])lf(e.dataTransfer.files[0]);});
+dz.addEventListener('click',()=>fi.click());
+fi.addEventListener('change',e=>{if(e.target.files[0])lf(e.target.files[0]);});
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── LOAD & AUTO-EXTRACT ───────────────────────────────────────
+function lf(file){
+  const rd=new FileReader();
+  rd.onload=async e=>{
+    RAW=e.target.result;P=parseEml(RAW);
+    docxTexts={};ocrTexts={};extracting=true;
+    fcn.textContent=file.name;
+    fcm.textContent=(file.size/1024).toFixed(1)+' KB · '+new Date().toLocaleTimeString('ja-JP');
+    fc.classList.add('on');
+    showHeaders(P);
+    setStatus('run','⚙ 解析中...',[]);
+    es.classList.add('on');
+    await autoExtract(P);
+  };
+  rd.readAsText(file,'utf-8');
+}
+
+async function autoExtract(p){
+  const key=aki.value.trim();
+  const rows=[];
+  // 1. Body text
+  let body=p.textBody&&p.textBody.trim().length>20?p.textBody.trim():'';
+  if(!body&&p.htmlBody&&p.htmlBody.trim().length>20)body=h2t(p.htmlBody);
+  if(body.length>20)rows.push(mkRow('📝','本文テキスト',body.length+'文字','tg-ok','✓ 取得','r-body'));
+  else rows.push(mkRow('⚠️','本文テキスト','抽出不能','tg-err','EMPTY','r-body'));
+  setStatus('run','⚙ 解析中...',rows);
+
+  // 2. Docx auto-extract
+  for(const att of p.attachments){
+    if(!att.name.match(/\.docx?$/i)&&!(att.mimeType||'').match(/word|officedocument/i))continue;
+    if(!att.data)continue;
+    const rid='r-'+att.name.replace(/\W/g,'_').substring(0,20);
+    rows.push(mkRow('📎',att.name.substring(0,26),'解析中...','tg-run','<span class="spin-sm"></span>',rid));
+    setStatus('run','⚙ docx解析中...',rows);
+    const txt=await extractDocx(att.data);
+    if(txt&&txt.length>50){
+      docxTexts[att.name]=txt;
+      updRow(rid,(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');
+    }else{
+      updRow(rid,'抽出失敗','tg-err','✗');
+    }
+  }
+
+  // 3. Inline images — auto OCR
+  for(let i=0;i<p.inlineImages.length;i++){
+    const img=p.inlineImages[i];
+    const rid='r-img'+i;
+    if(key.startsWith('sk-ant-')){
+      rows.push(mkRow('🖼',img.name.substring(0,26),'OCR中...','tg-run','<span class="spin-sm"></span>',rid));
+      setStatus('run','⚙ OCR実行中...',rows);
+      try{
+        const txt=await ocrImg(img.b64,img.mimeType);
+        ocrTexts[i]=txt;
+        updRow(rid,txt.length+'文字','tg-ok','✓ OCR完了');
+      }catch(e){
+        updRow(rid,'OCRエラー: '+e.message.substring(0,30),'tg-err','✗');
+      }
+    }else{
+      rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機'));
+    }
+  }
+
+  extracting=false;
+  const hasBody=body.length>20,hasDocx=Object.keys(docxTexts).length>0,hasOcr=Object.values(ocrTexts).some(t=>t&&t.length>10);
+  const ok=hasBody||hasDocx||hasOcr;
+  const parts=[];
+  if(hasBody)parts.push('本文'+body.length+'文字');
+  if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
+  if(hasOcr)parts.push('OCR '+Object.values(ocrTexts).filter(t=>t&&t.length>10).length+'件');
+  setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',rows);
+  p1.disabled=false;p2.disabled=false;
+  showEmp();
+}
+
+function mkRow(ic,label,detail,tagCls,tagHtml,id){return `<div class="er" id="${id||''}"><span class="er-ic">${ic}</span><div class="er-inf"><div class="er-lbl">${esc(label)}</div><div class="er-dt" id="dt-${id||''}">${esc(detail)}</div></div><span class="er-tag ${tagCls}" id="tg-${id||''}">${tagHtml}</span></div>`;}
+function updRow(id,detail,tagCls,tagHtml){const dt=document.getElementById('dt-'+id),tg=document.getElementById('tg-'+id);if(dt)dt.textContent=detail;if(tg){tg.className='er-tag '+tagCls;tg.innerHTML=tagHtml;}}
+function setStatus(v,t,rows){es.className='es on st-'+v;esHdr.textContent=t;esBody.innerHTML=rows.join('');}
+function showHeaders(p){
+  hrows.innerHTML='';
+  for(const[k,v]of[['From',p.from],['To',p.to],['CC',p.cc],['Date',p.date],['Subject',p.subject]]){
+    if(!v)continue;const r=document.createElement('div');r.className='hr-r';
+    r.innerHTML=`<span class="hk">${k}</span><span class="hv">${esc(v)}</span>`;hrows.appendChild(r);
+  }
+  if(p.attachments.length>0){ats.style.display='block';ach.innerHTML='';for(const a of p.attachments){const c=document.createElement('span');c.className='chip';c.textContent=a.name;ach.appendChild(c);}}
+  else ats.style.display='none';
+  hp.classList.add('on');
+}
+function showEmp(){emp.style.display='flex';ld.classList.remove('on');rs.classList.remove('on');}
+function showLd(t,s){emp.style.display='none';ld.classList.add('on');rs.classList.remove('on');spt.textContent=t;sps.textContent=s||'';}
+function showRs(){emp.style.display='none';ld.classList.remove('on');rs.classList.add('on');}
+cl.addEventListener('click',()=>{
+  P=null;RAW='';docxTexts={};ocrTexts={};extracting=false;
+  fc.classList.remove('on');es.classList.remove('on');hp.classList.remove('on');
+  p1.disabled=true;p2.disabled=true;fi.value='';
+  pb.style.display='none';rb.style.display='none';showEmp();
+});
+p1.addEventListener('click',()=>run(1));
+p2.addEventListener('click',()=>run(2));
+
+// ── SYSTEM PROMPT ─────────────────────────────────────────────
+const SYS=`You are a Risk-Aware Email Analysis Engine for NTT DC REIT Manager.
+HONESTY RULE: Analyze ONLY the content explicitly provided. Never infer or fabricate content not in the input. If body is empty, state that clearly.
+Return ONLY a valid JSON object — no markdown, no text outside JSON.
+{
+  "thread_summary":{"ja":"string","en":"string"},
+  "executive_summary":{"ja":"string","en":"string"},
+  "about":{"ja":"string","en":"string"},
+  "signal":{"ja":"string","en":"string","level":"High|Medium|Low|Unknown"},
+  "structural":{"ja":"string","en":"string","attachments_detected":true,"attachment_names":["name"],"thread_dependency":"Low|Medium|High"},
+  "dependency":{"ja":"string","en":"string","unsafe":true},
+  "governance":{"ja":"string","en":"string"},
+  "next_step":{"ja":"string","en":"string"}
+}
+thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section.
+signal.level High if: topside, DTA, revaluation, fair value, audit adjustment, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adjustment, valuation report.
+dependency.unsafe: true if body empty OR missing attachments OR prior thread context needed.
+governance: Specific items only — KPMG, Deloitte, Board, ARC, SGX, REIT, DPU, NAV, valuation, fee.
+next_step: Specific concrete actions only.
+ja=business Japanese. en=financial English.`;
+
+// ── RUN ───────────────────────────────────────────────────────
+async function run(phase){
+  if(!P)return;
+  const key=aki.value.trim();
+  if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください（sk-ant-...）');return;}
+  if(extracting){
+    showLd('⏳ 自動解析完了を待機中...','完了後すぐにスキャンを開始します');
+    await new Promise(res=>{const t=setInterval(()=>{if(!extracting){clearInterval(t);res();}},200);});
+  }
+  pb.style.display='inline-block';pb.className='badge '+(phase===1?'b-p1':'b-p2');pb.textContent='PHASE '+phase;
+  rb.style.display='none';
+  showLd(phase===1?'⚡ Rapid Scan 実行中...':'🔬 Deep Dive 実行中...','');
+
+  let bodyText=P.textBody&&P.textBody.trim().length>20?P.textBody.trim():(P.htmlBody&&P.htmlBody.trim().length>20?h2t(P.htmlBody):'');
+  const ocrArr=Object.entries(ocrTexts).filter(([,t])=>t&&t.trim().length>10).map(([i,t])=>`[画像OCR #${parseInt(i)+1}]\n${t}`);
+  if(ocrArr.length>0)bodyText+=(bodyText?'\n\n':'')+ocrArr.join('\n\n');
+
+  let attContent='';
+  for(const[fname,txt]of Object.entries(docxTexts)){
+    if(txt&&txt.length>50)attContent+=`\n\n=== ATTACHMENT: ${fname} ===\n${txt.substring(0,phase===1?4000:8000)}`;
+  }
+  if(phase===2){
+    for(const att of P.attachments){
+      if(!att.name.match(/\.docx?$/i)&&!(att.mimeType||'').match(/word|officedocument/i))continue;
+      if(docxTexts[att.name]||!att.data)continue;
+      sps.textContent=att.name+' を解析中...';
+      const txt=await extractDocx(att.data);
+      if(txt&&txt.length>50){docxTexts[att.name]=txt;attContent+=`\n\n=== ATTACHMENT: ${att.name} ===\n${txt.substring(0,8000)}`;}
+    }
+  }
+
+  const bodyStatus=bodyText.trim().length>20?`BODY_STATUS: OK (${bodyText.trim().length}文字)`:'BODY_STATUS: EMPTY';
+  const emailContent=`FROM: ${P.from}\nTO: ${P.to}\nCC: ${P.cc}\nDATE: ${P.date}\nSUBJECT: ${P.subject}\nATTACHMENTS: ${P.attachments.map(a=>a.name).join(', ')||'None'}\n${bodyStatus}\n\n=== EMAIL BODY ===\n${bodyText.trim()||'[EMPTY]'}${attContent}`;
+
+  sps.textContent='Claude API 呼び出し中...';
+  try{
+    const raw=await callApi([{role:'user',content:(phase===1?'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n':'PHASE 2 DEEP DIVE. Return valid JSON only.\n\n')+emailContent}],SYS,4000);
+    let j;
+    try{
+      let s=raw.replace(/```json\n?|```/g,'').trim();
+      const f=s.indexOf('{'),l=s.lastIndexOf('}');
+      if(f!==-1&&l>f)s=s.substring(f,l+1);
+      j=JSON.parse(s);
+    }catch(e){errOut('JSON parseエラー: '+e.message+'\n\nRaw (500文字):\n'+raw.substring(0,500));return;}
+    render(j,bodyText.trim().length<20);
+  }catch(e){
+    errOut('APIエラー: '+e.message+'\n\n【解決方法】\nChromeのURLバーに以下を入力してEnter:\nchrome://flags/#block-insecure-private-network-requests\n→ Disabled に変更して再起動');
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(j,bodyEmpty){
+  rs.innerHTML='';
+  const lvl=(j.signal?.level||'').toLowerCase();
+  rb.style.display='inline-block';
+  if(lvl==='high'){rb.className='badge b-hi';rb.textContent='⬆ HIGH RISK';}
+  else if(lvl==='medium'){rb.className='badge b-me';rb.textContent='→ MEDIUM RISK';}
+  else if(lvl==='low'){rb.className='badge b-lo';rb.textContent='✓ LOW RISK';}
+  else{rb.className='badge';rb.style.cssText='background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)';rb.textContent='? UNKNOWN';}
+
+  let d=0;
+  if(bodyEmpty){
+    const w=document.createElement('div');w.className='sec c-dg';w.style.animationDelay=d+'ms';
+    w.innerHTML=`<div class="sh"><span class="si">⚠️</span><span class="st">本文が空 / Body Empty</span></div><div style="padding:12px 14px"><div class="wl"><span>⚠</span><span>本文テキストが抽出できませんでした。APIキーを入力後にファイルを再ドロップすると自動OCRが実行されます。</span></div></div>`;
+    rs.appendChild(w);d+=55;
+  }
+
+  const defs=[
+    ['💬','スレッド状況 / Thread Status','c-th','thread_summary'],
+    ['⚡','エグゼクティブ・サマリー / Executive Summary','','executive_summary'],
+    ['📧','このメールの要点 / What This Email Is About','','about'],
+    ['📊','財務・ガバナンスシグナル / Financial Signal',lvl==='high'?'c-dg':lvl==='medium'?'c-wn':lvl==='low'?'c-ok':'','signal'],
+    ['🔍','構造スキャン / Structural Scan','','structural'],
+    ['⚠️','依存関係アラート / Dependency Alert',j.dependency?.unsafe?'c-dg':'c-wn','dependency'],
+    ['🛡','ガバナンス感度 / Governance Sensitivity','c-wn','governance'],
+    ['→','推奨アクション / Recommended Next Step','c-ok','next_step'],
+  ];
+  for(const[icon,title,cls,key]of defs){
+    const val=j[key];if(!val)continue;
+    let ja=val.ja||'',en=val.en||'';
+    if(key==='signal'){const lbl=lvl==='high'?'高（High）':lvl==='medium'?'中（Medium）':lvl==='low'?'低（Low）':'不明';ja=`**${lbl}**\n${ja}`;en=`**${val.level||'Unknown'}**\n${en}`;}
+    if(key==='structural'&&val.attachment_names){const an=(val.attachment_names||[]).join(', ')||'None';ja=`添付: ${val.attachments_detected?'**あり**':'なし'} | ${an}\nスレッド依存度: ${val.thread_dependency}\n\n${ja}`;en=`Attachments: ${val.attachments_detected?'**Yes**':'No'} | ${an}\nThread dependency: ${val.thread_dependency}\n\n${en}`;}
+    if(key==='dependency'&&val.unsafe){ja+='\n\n⚠ 現メール情報のみでの意思決定は安全ではありません';en+='\n\n⚠ Not safe to decide based only on current email view.';}
+    const s=mks(icon,title,cls,d);s.appendChild(bi(ja,en));rs.appendChild(s);d+=55;
+  }
+  showRs();
+}
+function mks(icon,title,cls,delay){
+  const s=document.createElement('div');s.className='sec '+(cls||'');s.style.animationDelay=delay+'ms';
+  s.innerHTML=`<div class="sh"><span class="si">${icon}</span><span class="st">${esc(title)}</span><span class="stag">JA / EN</span></div>`;return s;
+}
+function bi(ja,en){
+  const d=document.createElement('div');d.className='bg-grid';
+  d.innerHTML=`<div class="bc bja"><div class="bt">🇯🇵 日本語</div><div class="md">${md(ja)}</div></div><div class="bdv"></div><div class="bc ben"><div class="bt">🇬🇧 English</div><div class="md">${md(en)}</div></div>`;return d;
+}
+function md(t){
+  if(!t)return'';
+  return esc(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/(⚠[^\n]+)/g,'<div class="wl"><span>⚠</span><span>$1</span></div>').replace(/^[-•]\s(.+)$/gm,'<li>$1</li>').replace(/(<li>.*?<\/li>\n?)+/gs,m=>'<ul>'+m+'</ul>').replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+}
+function errOut(msg){rs.innerHTML=`<div class="sec c-dg"><div class="sh"><span class="si">⚠</span><span class="st">Error</span></div><div style="padding:12px 14px"><pre style="font-family:var(--mo);font-size:11px;color:var(--dg);white-space:pre-wrap">${esc(msg)}</pre></div></div>`;showRs();}
+</script>
+</body>
+</html>
