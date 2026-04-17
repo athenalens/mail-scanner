@@ -221,7 +221,7 @@ function parseEml(raw){
   return out;
 }
 function parseHdrs(block,t){
-  const ls=block.replace(/\r\n/g,'\n').replace(/\n[ \t]+/g,' ').split('\n');
+  const ls=block.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]+/g,' ').split('\n');
   for(const l of ls){const ci=l.indexOf(':');if(ci<1)continue;const k=l.substring(0,ci).trim().toLowerCase(),v=l.substring(ci+1).trim();if(!t[k])t[k]=v;}
 }
 function traverse(raw,boundary,out,depth){
@@ -253,7 +253,7 @@ function traverse(raw,boundary,out,depth){
   }
 }
 function splitBound(raw,boundary){
-  const ls=raw.replace(/\r\n/g,'\n').split('\n'),parts=[];let cur=[],ins=false;
+  const ls=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n'),parts=[];let cur=[],ins=false;
   const s='--'+boundary,e='--'+boundary+'--';
   for(const l of ls){
     const lt=l.trimEnd();
@@ -264,7 +264,7 @@ function splitBound(raw,boundary){
   if(ins&&cur.length)parts.push(cur.join('\n'));
   return parts;
 }
-function getBound(ct){const m=ct.match(/boundary=["']?([^"';\s\r\n]+)["']?/i);return m?m[1].replace(/['"]/g,''):null;}
+function getBound(ct){const m=ct.match(/boundary=["']?([^"';\s\r\n]+)["']?/i);return m?m[1].replace(/['"]/g,'').replace(/\r/g,''):null;}
 function getFname(h){
   const src=(h['content-disposition']||'')+' '+(h['content-type']||'');
   const m5=src.match(/filename\*=UTF-8''([^;\s\r\n]+)/i);if(m5){try{return decodeURIComponent(m5[1]);}catch{}}
