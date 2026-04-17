@@ -234,7 +234,7 @@ function traverse(raw,boundary,out,depth){
     const ct=(h['content-type']||'').toLowerCase(),ctR=h['content-type']||'',
           cd=(h['content-disposition']||'').toLowerCase(),ce=(h['content-transfer-encoding']||'').toLowerCase(),
           cid=(h['content-id']||'').replace(/[<>]/g,'').trim();
-    const sub=getBound(ct);
+    const sub=getBound(ctR);
     if(sub){traverse(part,sub,out,depth+1);continue;}
     const fname=getFname(h);
     const decoded=decTr(bb,ce,ctR);
