@@ -324,7 +324,7 @@ async function inflateRaw(c){
 async function callApi(messages, system, maxTokens){
   const key=aki.value.trim();
   // Use fetch with the official browser-direct header
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+  const resp=await fetch('https://shrill-night-ad6b.hidden-heart-fabb.workers.dev/',{
     method:'POST',
     headers:{
       'Content-Type':'application/json',
