@@ -405,6 +405,46 @@ async function ocrImg(b64,mimeType){
   ]}],null,2000);
 }
 
+// ── RESUME OCR for images skipped before key was entered ──────
+async function resumeOcr(){
+  if(!P||extracting)return;
+  const key=aki.value.trim();
+  if(!key.startsWith('sk-ant-'))return;
+  for(let i=0;i<P.inlineImages.length;i++){
+    if(ocrTexts[i]&&ocrTexts[i].length>5)continue; // already done
+    const img=P.inlineImages[i];
+    const rid='r-img'+i;
+    // Update status row if exists
+    const dtEl=document.getElementById('dt-'+rid);
+    const tgEl=document.getElementById('tg-'+rid);
+    if(dtEl)dtEl.textContent='OCR中...';
+    if(tgEl){tgEl.className='er-tag tg-run';tgEl.innerHTML='<span class="spin-sm"></span>';}
+    try{
+      const txt=await ocrImgWithRetry(img.b64,img.mimeType,key);
+      if(txt&&txt.length>5){
+        ocrTexts[i]=txt;
+        if(dtEl)dtEl.textContent=txt.length+'文字';
+        if(tgEl){tgEl.className='er-tag tg-ok';tgEl.textContent='✓ OCR完了';}
+      }
+    }catch(e){
+      if(dtEl)dtEl.textContent='OCRエラー';
+      if(tgEl){tgEl.className='er-tag tg-err';tgEl.textContent='✗';}
+    }
+  }
+  // Update status summary
+  const hasBody=(P.textBody&&P.textBody.trim().length>20)||(P.htmlBody&&P.htmlBody.trim().length>20);
+  const hasDocx=Object.keys(docxTexts).length>0;
+  const ocrDone=Object.values(ocrTexts).filter(t=>t&&t.length>5).length;
+  const hasOcr=ocrDone>0;
+  const ok=hasBody||hasDocx||hasOcr;
+  const parts=[];
+  if(hasBody)parts.push('本文');
+  if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
+  if(hasOcr)parts.push('OCR'+ocrDone+'件');
+  setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',
+    Array.from(esBody.children).map(c=>c.outerHTML));
+}
+
 // ── STATE ─────────────────────────────────────────────────────
 let P=null,RAW='',docxTexts={},ocrTexts={},extracting=false;
 const $=id=>document.getElementById(id);
@@ -420,7 +460,16 @@ const setupGuide=$('setupGuide');
 
 // API key
 const sk=sessionStorage.getItem('rmrs');if(sk){aki.value=sk;vk(sk);}
-aki.addEventListener('input',()=>{sessionStorage.setItem('rmrs',aki.value.trim());vk(aki.value.trim());});
+aki.addEventListener('input',()=>{
+  const v=aki.value.trim();
+  sessionStorage.setItem('rmrs',v);
+  vk(v);
+  // When a valid key is entered, OCR any pending images
+  if(v.startsWith('sk-ant-')&&P&&P.inlineImages.length>0&&!extracting){
+    const pending=P.inlineImages.filter((_,i)=>!ocrTexts[i]||ocrTexts[i].length<5);
+    if(pending.length>0)resumeOcr();
+  }
+});
 akt.addEventListener('click',()=>{aki.type=aki.type==='password'?'text':'password';});
 function vk(v){
   aki.classList.remove('ok','ng');akh.className='ak-h';
@@ -583,7 +632,7 @@ async function autoExtract(p){
         updRow(rid,'OCRエラー: '+e.message.substring(0,30),'tg-err','✗');
       }
     }else{
-      rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機'));
+      rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機',rid));
     }
   }
 
@@ -644,7 +693,7 @@ Return ONLY a valid JSON object — no markdown, no text outside JSON.
   "governance":{"ja":"string","en":"string"},
   "next_step":{"ja":"string","en":"string"}
 }
-thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section.
+thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section. For Phase 2 deep dive — extract specific amounts, dates, contract terms, approval status from all content including attachments and OCR.
 signal.level High if: topside, DTA, revaluation, fair value, audit adjustment, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adjustment, valuation report.
 dependency.unsafe: true if body empty OR missing attachments OR prior thread context needed.
 governance: Specific items only — KPMG, Deloitte, Board, ARC, SGX, REIT, DPU, NAV, valuation, fee.
@@ -721,7 +770,7 @@ async function run(phase){
     p2Sub.textContent='Claude API 呼び出し中...';
 
     try{
-      const j2 = await callAndParse(ec2, 'PHASE 2 DEEP DIVE', 5000);
+      const j2 = await callAndParse(ec2, 'PHASE 2 DEEP DIVE — analyze ALL provided content thoroughly, extract specific figures, dates, amounts, names, and decisions from email body AND all attachment/OCR content', 5000);
       p2Overlay.classList.add('hidden');
       if(!j2)return;
       renderInto(j2, be2, rs2);
