@@ -132,7 +132,7 @@ input[type=file]{display:none}
 .sp-s{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.7;text-align:center;max-width:280px;line-height:1.6}
 .rs{display:none}.rs.on{display:block}
 /* ── SPLIT LAYOUT ── */
-.out-wrap{flex:1;display:flex;overflow:hidden;position:relative}
+.out-wrap{flex:1;display:flex;overflow:hidden;position:relative;flex-direction:row}
 .pane{flex:1;overflow-y:auto;padding:16px;min-width:0;transition:flex .3s ease}
 .pane-p1{border-right:1px solid var(--bd)}
 .pane-p2{position:relative}
@@ -167,18 +167,23 @@ input[type=file]{display:none}
 .spin-sm{display:inline-block;width:9px;height:9px;border:1.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0;vertical-align:middle}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 
-/* ── CHAT PANEL ── */
-.chat-panel{border-top:1px solid var(--bd);display:flex;flex-direction:column;max-height:340px;flex-shrink:0;background:var(--sf)}
-.chat-hdr{font-family:var(--mo);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;color:var(--ac);border-bottom:1px solid var(--bd);background:rgba(0,212,255,.04)}
-.chat-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px;min-height:60px;max-height:220px}
-.chat-msg{font-size:13px;line-height:1.7;padding:8px 11px;border-radius:6px;max-width:95%}
-.chat-msg.user{background:var(--ac-d);border:1px solid rgba(0,212,255,.15);color:var(--br);align-self:flex-end;font-family:var(--mo);font-size:12px}
+/* ── CHAT PANE ── */
+.chat-pane{width:360px;min-width:300px;border-left:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);flex-shrink:0}
+.chat-pane-hdr{font-family:var(--mo);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;color:var(--ac);border-bottom:1px solid var(--bd);background:rgba(0,212,255,.04);flex-shrink:0}
+.chat-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{font-size:13px;line-height:1.7;padding:9px 12px;border-radius:7px;max-width:92%;word-break:break-word}
+.chat-msg.user{background:var(--ac-d);border:1px solid rgba(0,212,255,.18);color:var(--br);align-self:flex-end;font-family:var(--sa);font-size:13px}
 .chat-msg.assistant{background:var(--sf2);border:1px solid var(--bd2);color:var(--tx);align-self:flex-start}
 .chat-msg.assistant.streaming::after{content:'▋';animation:blink .7s step-end infinite;color:var(--ac);margin-left:2px}
-.chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd);align-items:flex-end}
-.chat-input{flex:1;background:var(--bg);border:1px solid var(--bd2);border-radius:5px;color:var(--br);font-family:var(--sa);font-size:13px;padding:7px 10px;outline:none;resize:none;line-height:1.5;transition:border-color .2s}
+.chat-att-tag{display:inline-block;font-family:var(--mo);font-size:10px;background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2);border-radius:3px;padding:1px 6px;margin:0 4px 4px 0}
+.chat-attachments{display:flex;flex-wrap:wrap;padding:0 0 4px}
+.chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd);align-items:flex-end;flex-shrink:0}
+.chat-img-btn{font-size:16px;cursor:pointer;padding:5px 4px;color:var(--dm);transition:color .2s;line-height:1;flex-shrink:0}
+.chat-img-btn:hover{color:var(--ac)}
+.chat-input-wrap{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-input{width:100%;background:var(--bg);border:1px solid var(--bd2);border-radius:5px;color:var(--br);font-family:var(--sa);font-size:13px;padding:7px 10px;outline:none;resize:none;line-height:1.5;transition:border-color .2s}
 .chat-input:focus{border-color:var(--ac)}
-.chat-send{background:var(--ac);color:#000;border:none;border-radius:5px;font-family:var(--mo);font-size:11px;font-weight:700;padding:7px 14px;cursor:pointer;white-space:nowrap;transition:all .2s;align-self:flex-end}
+.chat-send{background:var(--ac);color:#000;border:none;border-radius:5px;font-family:var(--mo);font-size:11px;font-weight:700;padding:7px 14px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;align-self:flex-end}
 .chat-send:hover{background:#33ddff}.chat-send:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
@@ -202,7 +207,6 @@ input[type=file]{display:none}
 
   <div class="hdr-acts">
     <button class="btn bp1" id="p1" disabled>⚡ Phase 1</button>
-    <button class="btn bp2" id="p2" disabled>🔬 Phase 2 Deep Dive</button>
     <button class="btn bclr" id="cl">✕</button>
   </div>
 
@@ -250,9 +254,8 @@ input[type=file]{display:none}
   <div class="right">
     <div class="ob"><span class="ob-l">Analysis Output</span></div>
     <div class="out-wrap" id="outWrap">
-      <!-- LEFT PANE: Phase 1 result (or empty state) -->
+      <!-- SCAN RESULT PANE -->
       <div class="pane pane-p1" id="paneP1">
-        <div class="pane-hdr pane-hdr-p1" id="paneP1Hdr" style="display:none">⚡ PHASE 1 — Rapid Scan</div>
         <div class="emp" id="emp">
           <div class="emp-ic">📭</div>
           <div class="emp-tx">ファイルをドロップして<br>Phase 1 スキャンを実行</div>
@@ -264,25 +267,19 @@ input[type=file]{display:none}
         </div>
         <div class="rs" id="rs"></div>
       </div>
-      <!-- RIGHT PANE: Phase 2 result + chat -->
-      <div class="pane pane-p2" id="paneP2" style="display:none;flex-direction:column">
-        <div class="pane-hdr pane-hdr-p2">🔬 PHASE 2 — Deep Dive</div>
-        <div class="rs" id="rs2" style="flex:1;overflow-y:auto"></div>
-        <!-- Loading overlay shown while Phase 2 runs -->
-        <div class="p2-overlay" id="p2Overlay">
-          <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
-          <div class="p2-msg" id="p2Msg">🔬 Deep Dive 実行中...</div>
-          <div class="p2-sub" id="p2Sub"></div>
-          <div class="ocr-prog" id="ocrProg"></div>
-        </div>
-        <!-- CHAT PANEL — appears after Phase 2 completes -->
-        <div class="chat-panel" id="chatPanel" style="display:none">
-          <div class="chat-hdr">💬 このドキュメントについて質問する</div>
-          <div class="chat-log" id="chatLog"></div>
-          <div class="chat-input-row">
-            <textarea id="chatInput" class="chat-input" placeholder="例：Naverの契約更新について、私が次に取るべきアクションを整理して" rows="2"></textarea>
-            <button id="chatSend" class="chat-send">送信</button>
+      <!-- CHAT PANE — appears after Phase1 -->
+      <div class="chat-pane" id="chatPane" style="display:none">
+        <div class="chat-pane-hdr">💬 ドキュメントについて質問 · 画像添付可</div>
+        <div class="chat-log" id="chatLog"></div>
+        <div class="chat-input-row">
+          <label class="chat-img-btn" for="chatImg" title="画像を添付">📎
+            <input type="file" id="chatImg" accept="image/*,.pdf" multiple style="display:none">
+          </label>
+          <div class="chat-input-wrap">
+            <div class="chat-attachments" id="chatAttachments"></div>
+            <textarea id="chatInput" class="chat-input" placeholder="例：Naverの契約更新について次のアクションを整理して　　Shift+Enterで改行" rows="2"></textarea>
           </div>
+          <button id="chatSend" class="chat-send">送信</button>
         </div>
       </div>
     </div>
@@ -649,7 +646,7 @@ const aki=$('aki'),akt=$('akt'),akh=$('akh');
 const p1=$('p1'),p2=$('p2'),cl=$('cl');
 const pb=$('pb'),rb=$('rb');
 const emp=$('emp'),ld=$('ld'),rs=$('rs'),spt=$('spt'),sps=$('sps');
-const paneP1=$('paneP1'),paneP2=$('paneP2'),rs2=$('rs2'),p2Overlay=$('p2Overlay'),p2Msg=$('p2Msg'),p2Sub=$('p2Sub'),ocrProg=$('ocrProg');
+const paneP1=$('paneP1');
 const setupGuide=$('setupGuide');
 
 // Track OCR row state separately so updates are non-destructive
@@ -691,11 +688,7 @@ function lf(file){
   currentFileType=getFileType(file);
   directContent='';
   P=null;RAW='';docxTexts={};ocrTexts={};ocrRows={};extracting=true;p1Json=null;ocrPromise=null;
-  if(paneP2)paneP2.style.display='none';
   if(paneP1)paneP1.style.flex='1';
-  const _h=document.getElementById('paneP1Hdr');if(_h)_h.style.display='none';
-  if(rs2)rs2.innerHTML='';
-  if(p2Overlay)p2Overlay.classList.add('hidden');
 
   fcn.textContent=file.name;
   fcm.innerHTML=(file.size/1024).toFixed(1)+' KB · '+new Date().toLocaleTimeString('ja-JP')+' '+ftBadge(currentFileType);
@@ -909,17 +902,12 @@ cl.addEventListener('click',()=>{
   fc.classList.remove('on');es.classList.remove('on');hp.classList.remove('on');
   p1.disabled=true;p2.disabled=true;fi.value='';
   pb.style.display='none';rb.style.display='none';
-  if(paneP2)paneP2.style.display='none';
   if(paneP1)paneP1.style.flex='1';
-  const h1=document.getElementById('paneP1Hdr');if(h1)h1.style.display='none';
-  if(rs2)rs2.innerHTML='';
-  if(p2Overlay)p2Overlay.classList.add('hidden');
-  const cp=$('chatPanel');if(cp)cp.style.display='none';
-  chatHistory=[];chatDocContext='';
+  const cp=$('chatPane');if(cp)cp.style.display='none';
+  chatHistory=[];chatDocContext='';pendingChatImages=[];
   showEmp();
 });
-p1.addEventListener('click',()=>run(1));
-p2.addEventListener('click',()=>run(2));
+p1.addEventListener('click',()=>run());
 
 // ── SYSTEM PROMPT ─────────────────────────────────────────────
 const SYS=`You are a Risk-Aware Email Analysis Engine for NTT DC REIT Manager.
@@ -935,7 +923,7 @@ Return ONLY a valid JSON object — no markdown, no text outside JSON.
   "governance":{"ja":"string","en":"string"},
   "next_step":{"ja":"string","en":"string"}
 }
-thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section. For Phase 2 deep dive — extract specific amounts, dates, contract terms, approval status from all content including attachments and OCR.
+thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section. Extract specific amounts, dates, contract terms, approval status.
 signal.level High if: topside, DTA, revaluation, fair value, audit adjustment, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adjustment, valuation report.
 dependency.unsafe: true if body empty OR missing attachments OR prior thread context needed.
 governance: Specific items only — KPMG, Deloitte, Board, ARC, SGX, REIT, DPU, NAV, valuation, fee.
@@ -995,7 +983,7 @@ function parseAndRenderStream(rawAccum, bodyEmpty, target){
   return null;
 }
 
-async function run(phase){
+async function run(){
   if(!P&&!directContent)return;
   const key=aki.value.trim();
   if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください（sk-ant-...）');return;}
@@ -1007,173 +995,189 @@ async function run(phase){
   }
 
   pb.style.display='inline-block';
-  pb.className='badge '+(phase===1?'b-p1':'b-p2');
-  pb.textContent='PHASE '+phase;
+  pb.className='badge b-p1';
+  pb.textContent='SCANNING';
   rb.style.display='none';
 
-  if(phase===1){
-    // ── PHASE 1: start Claude analysis immediately with available text ──
-    // OCR may still be running in background — that's fine, Phase 1 uses what's ready
-    paneP2.style.display='none';
-    paneP1.style.flex='1';
-    document.getElementById('paneP1Hdr').style.display='none';
-    showLd('⚡ Rapid Scan 実行中...','本文・添付テキストを分析中');
+  showLd('⚡ Rapid Scan 実行中...','本文・添付テキストを分析中');
+  $('chatPane').style.display='none';
 
-    const{emailContent,bodyEmpty}=buildContent(1);
-    let raw='',rendered=false;
-    try{
-      await callApiStream(
-        [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],
-        SYS,8000,
-        chunk=>{
-          raw+=chunk;
-          // Try progressive render once we likely have a complete JSON
-          if(!rendered&&raw.includes('"next_step"')&&raw.includes('}')){
-            const j=parseAndRenderStream(raw,bodyEmpty,rs);
-            if(j){rendered=true;p1Json=j;showRs();updateRiskBadge(j);}
-          }
-        }
-      );
-      // Final parse after stream ends
-      if(!rendered){
-        const j=parseAndRenderStream(raw,bodyEmpty,rs);
-        if(j){p1Json=j;showRs();updateRiskBadge(j);}
-        else{errOut('JSONパースエラー:\n'+raw.substring(0,400),rs);showRs();}
-      }
-    }catch(e){errOut('APIエラー: '+e.message,rs);showRs();}
-
-  }else{
-    // ── PHASE 2: Deep Dive (OCRスキップ、テキスト全文で高精度分析) ──
-    paneP2.style.display='flex';
-    paneP2.style.flexDirection='column';
-    paneP1.style.flex='1';
-    document.getElementById('paneP1Hdr').style.display='flex';
-    $('chatPanel').style.display='none';
-
-    // Phase1がまだなら先に実行
-    if(!p1Json){
-      showLd('⚡ Phase 1 を先に実行中...','');
-      const{emailContent:ec1,bodyEmpty:be1}=buildContent(1);
-      let raw1='';
-      try{
-        await callApiStream(
-          [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+ec1}],
-          SYS,8000,chunk=>{raw1+=chunk;}
-        );
-        const j=parseAndRenderStream(raw1,be1,rs);
-        if(j){p1Json=j;showRs();updateRiskBadge(j);}else showRs();
-      }catch(e){showRs();}
-    }else{
-      showRs();
-    }
-
-    // Phase2 loading overlay
-    p2Overlay.classList.remove('hidden');
-    rs2.innerHTML='';
-    p2Msg.textContent='🔬 Deep Dive 分析中...';
-    p2Sub.textContent='テキスト・添付ファイル全文を精査中';
-    ocrProg.textContent='';
-
-    // コンテンツ構築（OCR待ちなし）
-    const{emailContent:ec2,bodyEmpty:be2}=buildContent(2);
-
-    const SYS2=SYS+`
-PHASE 2 DEEP DIVE INSTRUCTIONS:
-- Extract EVERY specific figure: amounts, dates, deadlines, percentages, contract terms
-- Name every person mentioned and their role/action
-- List every decision pending and who owns it
-- Flag any discrepancy between attachment content and email body
-- next_step must be a numbered action list with owner and deadline`;
-
-    let raw2='',rendered2=false;
-    try{
-      await callApiStream(
-        [{role:'user',content:'PHASE 2 DEEP DIVE. Return valid JSON only.\n\n'+ec2}],
-        SYS2,10000,
-        chunk=>{
-          raw2+=chunk;
-          if(!rendered2&&raw2.includes('"next_step"')&&raw2.includes('}')){
-            const j=parseAndRenderStream(raw2,be2,rs2);
-            if(j){
-              rendered2=true;
-              p2Overlay.classList.add('hidden');
-              updateRiskBadge(j);
-              showChatPanel(ec2);
-            }
-          }
-        }
-      );
-      if(!rendered2){
-        const j=parseAndRenderStream(raw2,be2,rs2);
-        if(j){
-          p2Overlay.classList.add('hidden');
-          updateRiskBadge(j);
-          showChatPanel(ec2);
-        }else{
-          p2Overlay.classList.add('hidden');
-          errOut('Deep Dive JSONパースエラー:\n'+raw2.substring(0,400),rs2);
+  const{emailContent,bodyEmpty}=buildContent(1);
+  let raw='',rendered=false;
+  try{
+    await callApiStream(
+      [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],
+      SYS,8000,
+      chunk=>{
+        raw+=chunk;
+        if(!rendered&&raw.includes('"next_step"')&&raw.includes('}')){
+          const j=parseAndRenderStream(raw,bodyEmpty,rs);
+          if(j){rendered=true;p1Json=j;showRs();updateRiskBadge(j);openChat(emailContent);}
         }
       }
-    }catch(e){
-      p2Overlay.classList.add('hidden');
-      errOut('Deep Dive エラー: '+e.message,rs2);
+    );
+    if(!rendered){
+      const j=parseAndRenderStream(raw,bodyEmpty,rs);
+      if(j){p1Json=j;showRs();updateRiskBadge(j);openChat(emailContent);}
+      else{errOut('JSONパースエラー:\n'+raw.substring(0,400),rs);showRs();}
     }
-  }
+  }catch(e){errOut('APIエラー: '+e.message,rs);showRs();}
+  pb.textContent='PHASE 1';
 }
 
 // ── CHAT ─────────────────────────────────────────────────────
+// Direct to Anthropic API — no Worker, no CORS issue for chat
+const ANTHROPIC_CHAT_URL='https://api.anthropic.com/v1/messages';
+
 let chatHistory=[];
 let chatDocContext='';
+let pendingChatImages=[];  // [{b64, mimeType, name}]
 
-function showChatPanel(docContext){
+function openChat(docContext){
   chatDocContext=docContext;
   chatHistory=[];
-  const panel=$('chatPanel');
-  panel.style.display='flex';
-  panel.style.flexDirection='column';
+  pendingChatImages=[];
+  const pane=$('chatPane');
+  pane.style.display='flex';
+  pane.style.flexDirection='column';
   $('chatLog').innerHTML='';
-  // Scroll Phase2 pane to show chat
-  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'end'}),100);
+  $('chatAttachments').innerHTML='';
 }
 
-function appendChatMsg(role,text,streaming=false){
+function appendChatMsg(role,html_or_text,streaming=false){
   const log=$('chatLog');
   const div=document.createElement('div');
   div.className='chat-msg '+role+(streaming?' streaming':'');
-  div.innerHTML=role==='assistant'?md(text):esc(text);
+  div.innerHTML=html_or_text;
   log.appendChild(div);
   log.scrollTop=log.scrollHeight;
   return div;
+}
+
+// Image attach handler
+document.addEventListener('DOMContentLoaded',()=>{
+  const imgInput=$('chatImg');
+  if(imgInput){
+    imgInput.addEventListener('change',async e=>{
+      for(const file of e.target.files){
+        const b64=await fileToB64(file);
+        const mt=file.type||'image/jpeg';
+        pendingChatImages.push({b64,mimeType:mt,name:file.name});
+        const att=$('chatAttachments');
+        const tag=document.createElement('span');
+        tag.className='chat-att-tag';
+        tag.textContent='📎 '+file.name;
+        att.appendChild(tag);
+      }
+      imgInput.value='';
+    });
+  }
+
+  const send=$('chatSend');
+  const input=$('chatInput');
+  if(send)send.addEventListener('click',sendChat);
+  if(input)input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+  });
+});
+
+function fileToB64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
 }
 
 async function sendChat(){
   const input=$('chatInput');
   const send=$('chatSend');
   const userText=input.value.trim();
-  if(!userText)return;
+  if(!userText&&pendingChatImages.length===0)return;
   const key=aki.value.trim();
   if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください');return;}
 
+  // Build user message content (text + images)
+  const imgs=[...pendingChatImages];
+  pendingChatImages=[];
+  $('chatAttachments').innerHTML='';
+
+  const contentParts=[];
+  for(const img of imgs){
+    // Resize before sending
+    const{b64:rb,mt:rmt}=await resizeImageB64(img.b64,img.mimeType,1600);
+    contentParts.push({type:'image',source:{type:'base64',media_type:rmt,data:rb}});
+  }
+  if(userText)contentParts.push({type:'text',text:userText});
+
+  // Show user message in UI
+  let userHtml='';
+  if(imgs.length)userHtml+=imgs.map(i=>'<span class="chat-att-tag">📎 '+esc(i.name)+'</span>').join('');
+  if(userText)userHtml+=esc(userText);
+  appendChatMsg('user',userHtml);
+
+  chatHistory.push({role:'user',content:contentParts});
   input.value='';
   send.disabled=true;
-  appendChatMsg('user',userText);
-  chatHistory.push({role:'user',content:userText});
 
-  const assistantDiv=appendChatMsg('assistant','',true);
+  const assistantDiv=appendChatMsg('assistant','<span style="opacity:.4">...</span>',true);
 
   const CHAT_SYS=`You are an expert document analysis assistant for NTT DC REIT Manager.
-The user has just analyzed the following document/email. Answer questions about it concisely and precisely.
-Respond in the same language the user writes in (Japanese or English).
-DOCUMENT CONTEXT:
-${chatDocContext.substring(0,8000)}`;
+Context from the scanned document:
+${chatDocContext.substring(0,6000)}
+---
+Answer questions concisely and precisely. Respond in the same language the user uses (Japanese or English).
+If an image is provided, read and analyze it directly. Extract text, tables, figures as needed.`;
 
+  // Stream directly to Anthropic (bypasses Worker)
   let reply='';
   try{
-    await callApiStream(chatHistory,CHAT_SYS,2000,chunk=>{
-      reply+=chunk;
-      assistantDiv.innerHTML=md(reply);
-      $('chatLog').scrollTop=$('chatLog').scrollHeight;
+    const resp=await fetch(ANTHROPIC_CHAT_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:4000,
+        stream:true,
+        system:CHAT_SYS,
+        messages:chatHistory
+      })
     });
+
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message||'HTTP '+resp.status);
+    }
+
+    const ct=resp.headers.get('content-type')||'';
+    if(ct.includes('text/event-stream')){
+      const reader=resp.body.getReader();
+      const decoder=new TextDecoder();
+      let buf='';
+      while(true){
+        const{done,value}=await reader.read();
+        if(done)break;
+        buf+=decoder.decode(value,{stream:true});
+        const lines=buf.split('\n');buf=lines.pop()||'';
+        for(const line of lines){
+          if(!line.startsWith('data:'))continue;
+          const d=line.slice(5).trim();
+          if(d==='[DONE]')break;
+          try{const ev=JSON.parse(d);const delta=ev.delta?.text||'';if(delta){reply+=delta;assistantDiv.innerHTML=md(reply);$('chatLog').scrollTop=$('chatLog').scrollHeight;}}catch{}
+        }
+      }
+    }else{
+      const data=await resp.json();
+      reply=data.content?.[0]?.text||'';
+      assistantDiv.innerHTML=md(reply);
+    }
+
     assistantDiv.classList.remove('streaming');
     chatHistory.push({role:'assistant',content:reply});
   }catch(e){
@@ -1184,16 +1188,6 @@ ${chatDocContext.substring(0,8000)}`;
   send.disabled=false;
   input.focus();
 }
-
-// Chat event listeners (initialized after DOM ready)
-document.addEventListener('DOMContentLoaded',()=>{
-  const send=$('chatSend');
-  const input=$('chatInput');
-  if(send)send.addEventListener('click',sendChat);
-  if(input)input.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
-  });
-});
 
 // ── RENDER ────────────────────────────────────────────────────
 function updateRiskBadge(j){
