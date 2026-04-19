@@ -18,33 +18,61 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:var(--sa);font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
-.hdr{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
-.hdr-ic{width:26px;height:26px;background:var(--ac);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px}
-.hdr-tt{font-family:var(--mo);font-size:13px;font-weight:600;color:var(--br);letter-spacing:.05em}
-.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ── TOP HEADER BAR (always visible) ── */
+.hdr{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0;height:52px;position:sticky;top:0;z-index:100}
+.hdr-ic{width:24px;height:24px;background:var(--ac);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.hdr-tt{font-family:var(--mo);font-size:12px;font-weight:600;color:var(--br);letter-spacing:.05em;flex-shrink:0}
+.hdr-sep{width:1px;height:20px;background:var(--bd2);flex-shrink:0}
+
+/* API key in header */
+.hdr-ak{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.hdr-ak-l{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.08em;white-space:nowrap}
+.hdr-ak-r{display:flex;gap:3px;align-items:center}
+.ak-i{background:var(--bg);border:1px solid var(--bd2);border-radius:4px;color:var(--br);font-family:var(--mo);font-size:11px;padding:4px 8px;outline:none;transition:border-color .2s;width:200px}
+.ak-i:focus{border-color:var(--ac)}.ak-i.ok{border-color:var(--ok)}.ak-i.ng{border-color:var(--dg)}
+.ak-t{background:var(--sf2);border:1px solid var(--bd2);border-radius:4px;color:var(--dm);cursor:pointer;font-size:11px;padding:3px 6px;line-height:1}
+.ak-h{font-family:var(--mo);font-size:9px;color:var(--dm);white-space:nowrap}
+.ak-h.ok{color:var(--ok)}.ak-h.ng{color:var(--dg)}
+
+/* Action buttons in header */
+.hdr-acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.btn{padding:7px 14px;border-radius:5px;border:none;cursor:pointer;font-family:var(--mo);font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.bp1{background:var(--ac);color:#000}.bp1:not(:disabled):hover{background:#33ddff;box-shadow:0 0 12px var(--ac-g)}
+.bp2{background:transparent;color:var(--wn);border:1px solid rgba(255,149,0,.35)}.bp2:not(:disabled):hover{background:var(--wn-d)}
+.bclr{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2);font-size:10px}.bclr:hover{color:var(--br)}
+
+/* Status badges in header */
+.hdr-badges{display:flex;align-items:center;gap:6px;margin-left:auto}
 .badge{font-family:var(--mo);font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;letter-spacing:.08em}
 .b-p1{background:var(--ac-d);color:var(--ac);border:1px solid rgba(0,212,255,.2)}
 .b-p2{background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
 .b-hi{background:var(--dg-d);color:var(--dg);border:1px solid rgba(255,59,59,.2)}
 .b-me{background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
 .b-lo{background:var(--ok-d);color:var(--ok);border:1px solid rgba(52,199,89,.2)}
-.hdr-sub{font-family:var(--mo);font-size:11px;color:var(--dm)}
+.hdr-sub{font-family:var(--mo);font-size:10px;color:var(--dm);white-space:nowrap}
+
+/* ── MAIN LAYOUT ── */
 .main{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
-.left{width:300px;min-width:260px;border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);overflow-y:auto}
+.left{width:280px;min-width:240px;border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);overflow-y:auto}
+
 /* Setup banner */
 .setup{margin:10px;padding:10px 12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:6px;flex-shrink:0}
 .setup-title{font-family:var(--mo);font-size:10px;color:var(--ac);font-weight:600;letter-spacing:.06em;margin-bottom:6px}
 .setup-step{font-family:var(--mo);font-size:10px;color:var(--dm);line-height:1.7}
 .setup-step b{color:var(--br)}
 .setup-step code{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--ac);font-size:10px}
+
 /* Drop zone */
-.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;cursor:pointer;transition:all .2s;border:2px dashed transparent;margin:10px;border-radius:8px;min-height:96px;flex-shrink:0}
+.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;cursor:pointer;transition:all .2s;border:2px dashed transparent;margin:10px;border-radius:8px;min-height:90px;flex-shrink:0}
 .dz.ov{border-color:var(--ac);background:var(--ac-d)}
-.dz-ic{width:44px;height:44px;border:1.5px solid var(--bd2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--dm);background:var(--sf2);transition:all .2s}
+.dz-ic{width:40px;height:40px;border:1.5px solid var(--bd2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dm);background:var(--sf2);transition:all .2s}
 .dz:hover .dz-ic,.dz.ov .dz-ic{border-color:var(--ac);color:var(--ac);box-shadow:0 0 16px var(--ac-g)}
-.dz-tx strong{display:block;color:var(--br);font-weight:500;font-size:13px;margin-bottom:2px;text-align:center}
-.dz-tx span{color:var(--dm);font-size:11px;font-family:var(--mo);display:block;text-align:center}
+.dz-tx strong{display:block;color:var(--br);font-weight:500;font-size:12px;margin-bottom:2px;text-align:center}
+.dz-tx span{color:var(--dm);font-size:10px;font-family:var(--mo);display:block;text-align:center}
 input[type=file]{display:none}
+
 /* File type badge */
 .ft-badge{font-family:var(--mo);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;margin-top:4px}
 .ft-eml{background:rgba(0,212,255,.12);color:var(--ac);border:1px solid rgba(0,212,255,.2)}
@@ -58,6 +86,7 @@ input[type=file]{display:none}
 .fc.on{display:block}
 .fc-n{font-family:var(--mo);font-size:11px;color:var(--ac);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fc-m{font-family:var(--mo);font-size:10px;color:var(--dm)}
+
 /* Extraction status */
 .es{margin:0 10px 6px;border-radius:6px;overflow:hidden;display:none;flex-shrink:0}
 .es.on{display:block}
@@ -73,7 +102,8 @@ input[type=file]{display:none}
 .er-dt{font-family:var(--mo);font-size:9px;color:var(--dm)}
 .er-tag{font-family:var(--mo);font-size:9px;padding:1px 5px;border-radius:2px;flex-shrink:0;white-space:nowrap}
 .tg-ok{background:var(--ok-d);color:var(--ok)}.tg-run{background:var(--ac-d);color:var(--ac)}.tg-err{background:var(--dg-d);color:var(--dg)}.tg-skip{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)}
-/* Headers */
+
+/* Email Headers */
 .hp{border-top:1px solid var(--bd);padding:10px 12px;display:none;flex-direction:column;gap:5px;flex-shrink:0}
 .hp.on{display:flex}
 .hl{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
@@ -82,25 +112,10 @@ input[type=file]{display:none}
 .hv{font-family:var(--mo);font-size:10px;color:var(--br);word-break:break-all;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
 .chip{font-family:var(--mo);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
-/* API key */
-.ak-w{margin:8px 10px;padding:9px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;flex-shrink:0}
-.ak-l{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;margin-bottom:4px}
-.ak-r{display:flex;gap:4px}
-.ak-i{flex:1;background:var(--bg);border:1px solid var(--bd2);border-radius:4px;color:var(--br);font-family:var(--mo);font-size:11px;padding:5px 8px;outline:none;transition:border-color .2s}
-.ak-i:focus{border-color:var(--ac)}.ak-i.ok{border-color:var(--ok)}.ak-i.ng{border-color:var(--dg)}
-.ak-t{background:var(--sf);border:1px solid var(--bd2);border-radius:4px;color:var(--dm);cursor:pointer;font-size:11px;padding:3px 6px}
-.ak-h{font-family:var(--mo);font-size:10px;color:var(--dm);margin-top:3px;min-height:13px}
-.ak-h.ok{color:var(--ok)}.ak-h.ng{color:var(--dg)}
-/* Actions */
-.acts{padding:10px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
-.btn{width:100%;padding:9px 12px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mo);font-size:12px;font-weight:600;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn:disabled{opacity:.3;cursor:not-allowed}
-.bp1{background:var(--ac);color:#000}.bp1:not(:disabled):hover{background:#33ddff;box-shadow:0 0 14px var(--ac-g)}
-.bp2{background:transparent;color:var(--wn);border:1px solid rgba(255,149,0,.3)}.bp2:not(:disabled):hover{background:var(--wn-d)}
-.bclr{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2);font-size:11px}.bclr:hover{color:var(--br)}
-/* Right */
+
+/* Right panel */
 .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.ob{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
+.ob{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
 .ob-l{font-family:var(--mo);font-size:11px;color:var(--dm);letter-spacing:.05em;text-transform:uppercase}
 .out{flex:1;overflow-y:auto;padding:18px}
 .emp{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:.3}
@@ -154,19 +169,39 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
+<!-- ── STICKY TOP BAR ── -->
 <div class="hdr">
   <div class="hdr-ic">📡</div>
   <span class="hdr-tt">DOCUMENT RISK SCANNER</span>
-  <div class="hdr-r">
+  <div class="hdr-sep"></div>
+
+  <div class="hdr-ak">
+    <span class="hdr-ak-l">API KEY</span>
+    <div class="hdr-ak-r">
+      <input type="password" id="aki" class="ak-i" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <button class="ak-t" id="akt">👁</button>
+    </div>
+    <span class="ak-h" id="akh">未入力</span>
+  </div>
+
+  <div class="hdr-sep"></div>
+
+  <div class="hdr-acts">
+    <button class="btn bp1" id="p1" disabled>⚡ Phase 1</button>
+    <button class="btn bp2" id="p2" disabled>🔬 Phase 2 Deep Dive</button>
+    <button class="btn bclr" id="cl">✕</button>
+  </div>
+
+  <div class="hdr-badges">
     <span id="pb" class="badge b-p1" style="display:none"></span>
     <span id="rb" class="badge" style="display:none"></span>
     <span class="hdr-sub">NTT DC REIT · Executive Decision Support</span>
   </div>
 </div>
+
 <div class="main">
   <div class="left">
 
-    <!-- 使い方ガイド -->
     <div class="setup" id="setupGuide">
       <div class="setup-title">⚡ 初回セットアップ（1回だけ）</div>
       <div class="setup-step">
@@ -175,7 +210,7 @@ input[type=file]{display:none}
         <code>chrome://flags/#block-insecure-private-network-requests</code><br>
         <b>3.</b> <b>Disabled</b> に変更 → 再起動<br>
         <b>4.</b> このHTMLをダブルクリックで開く<br>
-        <b>5.</b> APIキーを入力してドロップ
+        <b>5.</b> APIキーを上のバーに入力してドロップ
       </div>
     </div>
 
@@ -195,21 +230,6 @@ input[type=file]{display:none}
         <div class="hl" style="margin-bottom:3px">Attachments</div>
         <div class="chips" id="ach"></div>
       </div>
-    </div>
-
-    <div class="ak-w">
-      <div class="ak-l">ANTHROPIC API KEY</div>
-      <div class="ak-r">
-        <input type="password" id="aki" class="ak-i" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-        <button class="ak-t" id="akt">👁</button>
-      </div>
-      <div class="ak-h" id="akh">APIキーを入力してください</div>
-    </div>
-
-    <div class="acts">
-      <button class="btn bp1" id="p1" disabled>⚡ Phase 1 — Rapid Scan</button>
-      <button class="btn bp2" id="p2" disabled>🔬 Phase 2 — Deep Dive + 添付全文</button>
-      <button class="btn bclr" id="cl">✕ クリア</button>
     </div>
   </div>
 
@@ -547,33 +567,52 @@ async function ocrImgWithRetry(b64,mimeType,retries=2){
       return await callApi([{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
         {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
-      ]}],null,2000);
+      ]}],null,3000);
     }catch(e){
       if(attempt===retries)throw e;
-      await new Promise(r=>setTimeout(r,1000*(attempt+1)));
+      // Exponential backoff: 2s, 4s
+      await new Promise(r=>setTimeout(r,2000*Math.pow(2,attempt)));
     }
   }
 }
 
-// ── PARALLEL OCR — run all images simultaneously ──────────────
-// Returns a promise that resolves when all OCR jobs finish.
-// Results are written into ocrTexts[] as they complete.
+// ── PARALLEL OCR — max 2 concurrent to avoid rate limits ──────
+// Semaphore limits concurrent requests. Results written into ocrTexts[].
 // onProgress(i, status, chars) called for UI updates.
 function startParallelOcr(images, onProgress){
   if(!images||images.length===0)return Promise.resolve();
   const key=aki.value.trim();
   if(!key.startsWith('sk-ant-'))return Promise.resolve();
 
-  const promises=images.map((img,i)=>{
-    onProgress(i,'run',0);
-    return ocrImgWithRetry(img.b64,img.mimeType)
-      .then(txt=>{
-        if(txt&&txt.length>5){ocrTexts[i]=txt;onProgress(i,'ok',txt.length);}
-        else onProgress(i,'err',0);
-      })
-      .catch(()=>onProgress(i,'err',0));
+  const MAX_CONCURRENT=2;
+  let active=0,idx=0;
+
+  return new Promise(resolve=>{
+    let completed=0;
+    const total=images.length;
+
+    function next(){
+      while(active<MAX_CONCURRENT&&idx<total){
+        const i=idx++;
+        active++;
+        onProgress(i,'run',0);
+        const img=images[i];
+        ocrImgWithRetry(img.b64,img.mimeType)
+          .then(txt=>{
+            if(txt&&txt.length>5){ocrTexts[i]=txt;onProgress(i,'ok',txt.length);}
+            else onProgress(i,'err',0);
+          })
+          .catch(()=>onProgress(i,'err',0))
+          .finally(()=>{
+            active--;
+            completed++;
+            if(completed===total)resolve();
+            else next();
+          });
+      }
+    }
+    next();
   });
-  return Promise.all(promises);
 }
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -607,9 +646,9 @@ aki.addEventListener('input',()=>{
 akt.addEventListener('click',()=>{aki.type=aki.type==='password'?'text':'password';});
 function vk(v){
   aki.classList.remove('ok','ng');akh.className='ak-h';
-  if(!v){akh.textContent='APIキーを入力してください';return;}
+  if(!v){akh.textContent='未入力';return;}
   if(!v.startsWith('sk-ant-')){aki.classList.add('ng');akh.textContent='⚠ sk-ant- で始まるキーを入力';akh.classList.add('ng');return;}
-  aki.classList.add('ok');akh.textContent='✓ 設定済み（セッション中のみ保持）';akh.classList.add('ok');
+  aki.classList.add('ok');akh.textContent='✓ 設定済み';akh.classList.add('ok');
   if(setupGuide)setupGuide.style.display='none';
 }
 
@@ -902,17 +941,32 @@ function buildContent(phase){
   return{emailContent,bodyEmpty};
 }
 
-// Parse streaming JSON incrementally — render sections as they complete
-function parseAndRenderStream(rawAccum, bodyEmpty, target, isFirst){
-  // Try to extract complete JSON object from accumulated text
+// Parse streaming JSON — robust extraction with cleanup
+function parseAndRenderStream(rawAccum, bodyEmpty, target){
   const f=rawAccum.indexOf('{'),l=rawAccum.lastIndexOf('}');
   if(f===-1||l<f)return null;
-  const candidate=rawAccum.substring(f,l+1);
+  let candidate=rawAccum.substring(f,l+1);
+  // Strip control chars that break JSON.parse (newlines inside strings etc.)
+  candidate=candidate.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'');
   try{
     const j=JSON.parse(candidate);
     renderInto(j,bodyEmpty,target);
     return j;
-  }catch{}
+  }catch(e1){
+    // Try progressively removing the last incomplete key-value pair
+    // in case the stream was cut mid-token
+    let trimmed=candidate;
+    for(let attempts=0;attempts<8;attempts++){
+      const lastComma=trimmed.lastIndexOf(',');
+      if(lastComma<2)break;
+      trimmed=trimmed.substring(0,lastComma)+'}';
+      try{
+        const j=JSON.parse(trimmed);
+        renderInto(j,bodyEmpty,target);
+        return j;
+      }catch{}
+    }
+  }
   return null;
 }
 
@@ -945,7 +999,7 @@ async function run(phase){
     try{
       await callApiStream(
         [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],
-        SYS,4000,
+        SYS,6000,
         chunk=>{
           raw+=chunk;
           // Try progressive render once we likely have a complete JSON
@@ -978,7 +1032,7 @@ async function run(phase){
       try{
         await callApiStream(
           [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+ec1}],
-          SYS,4000,chunk=>{raw1+=chunk;}
+          SYS,6000,chunk=>{raw1+=chunk;}
         );
         const j=parseAndRenderStream(raw1,be1,rs,true);
         if(j){p1Json=j;showRs();updateRiskBadge(j);}else showRs();
@@ -1018,7 +1072,7 @@ async function run(phase){
     try{
       await callApiStream(
         [{role:'user',content:'PHASE 2 DEEP DIVE — analyze ALL provided content thoroughly, extract specific figures, dates, amounts, names, and decisions from email body AND all attachment/OCR content. Return valid JSON only.\n\n'+ec2}],
-        SYS,6000,
+        SYS,8000,
         chunk=>{
           raw2+=chunk;
           if(!rendered2&&raw2.includes('"next_step"')&&raw2.includes('}')){
