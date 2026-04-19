@@ -129,6 +129,9 @@ input[type=file]{display:none}
 .p2-msg{font-family:var(--mo);font-size:11px;color:var(--dm);letter-spacing:.05em}
 .p2-sub{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.6}
 .ocr-prog{font-family:var(--mo);font-size:10px;color:var(--ac);margin-top:4px}
+/* streaming cursor */
+.stream-cursor::after{content:'▋';animation:blink .7s step-end infinite;color:var(--ac);font-size:11px;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
 .sec{margin-bottom:14px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;animation:fu .35s ease forwards;opacity:0}
 @keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .sec.c-wn{border-color:rgba(255,149,0,.35)}.sec.c-dg{border-color:rgba(255,59,59,.35)}.sec.c-ok{border-color:rgba(52,199,89,.25)}.sec.c-th{border-color:rgba(0,212,255,.35)}
@@ -146,7 +149,6 @@ input[type=file]{display:none}
 .md ul{padding-left:16px;margin:4px 0}.md li{margin-bottom:3px}
 .md code{font-family:var(--mo);font-size:11px;background:var(--sf2);padding:1px 5px;border-radius:3px;color:var(--ac)}
 .wl{display:flex;align-items:flex-start;gap:7px;background:var(--wn-d);border:1px solid rgba(255,149,0,.25);border-radius:5px;padding:7px 11px;margin:6px 0;font-family:var(--mo);font-size:11px;color:var(--wn);line-height:1.6}
-@keyframes blink{50%{opacity:0}}
 .spin-sm{display:inline-block;width:9px;height:9px;border:1.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0;vertical-align:middle}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 </style>
@@ -219,7 +221,7 @@ input[type=file]{display:none}
         <div class="pane-hdr pane-hdr-p1" id="paneP1Hdr" style="display:none">⚡ PHASE 1 — Rapid Scan</div>
         <div class="emp" id="emp">
           <div class="emp-ic">📭</div>
-        <div class="emp-tx">ファイルをドロップして<br>Phase 1 スキャンを実行</div>
+          <div class="emp-tx">ファイルをドロップして<br>Phase 1 スキャンを実行</div>
         </div>
         <div class="ld" id="ld">
           <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
@@ -335,7 +337,7 @@ function r47(s){if(!s)return'';return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?
 function imgExt(mt){if(mt.includes('jpeg')||mt.includes('jpg'))return'.jpg';if(mt.includes('png'))return'.png';return'.img';}
 function h2t(html){return html.replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<\/div>/gi,'\n').replace(/<\/tr>/gi,'\n').replace(/<\/td>/gi,' | ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\n{3,}/g,'\n\n').trim();}
 
-// ── DOCX EXTRACTOR ────────────────────────────────────────────
+// ── DOCX EXTRACTOR (ZIP parser) ───────────────────────────────
 async function extractDocx(b64){
   try{
     const bin=atob(b64.replace(/\s/g,''));
@@ -364,6 +366,78 @@ async function extractDocx(b64){
     return results.join('\n\n').substring(0,10000)||null;
   }catch(e){return null;}
 }
+
+// ── XLSX EXTRACTOR (ZIP → shared strings + sheets) ────────────
+async function extractXlsx(b64){
+  try{
+    const files=await unzipAll(b64);
+    // Read shared strings
+    const ssXml=files['xl/sharedStrings.xml']||files['xl/sharedstrings.xml']||'';
+    const strings=[];
+    if(ssXml){
+      const matches=[...ssXml.matchAll(/<t[^>]*>([^<]*)<\/t>/g)];
+      for(const m of matches)strings.push(m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'));
+    }
+    // Read sheet1
+    const sheetXml=files['xl/worksheets/sheet1.xml']||'';
+    const rows=[];
+    const rowMatches=[...sheetXml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)];
+    for(const rm of rowMatches){
+      const cells=[];
+      const cellMatches=[...rm[1].matchAll(/<c[^>]*t="s"[^>]*>[\s\S]*?<v>(\d+)<\/v>[\s\S]*?<\/c>|<c[^>]*>[\s\S]*?<v>([^<]*)<\/v>[\s\S]*?<\/c>/g)];
+      for(const cm of cellMatches){
+        if(cm[1]!==undefined){const idx=parseInt(cm[1]);cells.push(strings[idx]||'');}
+        else cells.push(cm[2]||'');
+      }
+      if(cells.some(c=>c.trim()))rows.push(cells.join('\t'));
+    }
+    return rows.join('\n').substring(0,10000)||null;
+  }catch(e){return null;}
+}
+
+// ── PPTX EXTRACTOR (ZIP → slide xmls) ────────────────────────
+async function extractPptx(b64){
+  try{
+    const files=await unzipAll(b64);
+    const texts=[];
+    const slideKeys=Object.keys(files).filter(k=>k.match(/^ppt\/slides\/slide\d+\.xml$/i)).sort((a,b)=>{
+      const na=parseInt(a.match(/\d+/)[0]),nb=parseInt(b.match(/\d+/)[0]);return na-nb;
+    });
+    for(const key of slideKeys){
+      const xml=files[key]||'';
+      const txt=xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      if(txt.length>10)texts.push(`[${key.split('/').pop()}]\n${txt}`);
+    }
+    return texts.join('\n\n').substring(0,10000)||null;
+  }catch(e){return null;}
+}
+
+// ── ZIP utility: extract all text files ──────────────────────
+async function unzipAll(b64){
+  const bin=atob(b64.replace(/\s/g,''));
+  const bytes=new Uint8Array([...bin].map(c=>c.charCodeAt(0)));
+  const view=new DataView(bytes.buffer);
+  const files={};let i=0;
+  while(i<bytes.length-4){
+    if(view.getUint32(i,true)!==0x04034b50){i++;continue;}
+    const meth=view.getUint16(i+8,true);
+    const cSz=view.getUint32(i+18,true);
+    const fnLen=view.getUint16(i+26,true),exLen=view.getUint16(i+28,true);
+    const fn=new TextDecoder().decode(bytes.slice(i+30,i+30+fnLen));
+    const ds=i+30+fnLen+exLen;
+    if(fn.match(/\.(xml|rels)$/i)&&cSz<500000){
+      try{
+        let xd=null;
+        if(meth===0)xd=bytes.slice(ds,ds+cSz);
+        else if(meth===8)xd=await inflateRaw(bytes.slice(ds,ds+cSz));
+        if(xd)files[fn]=new TextDecoder('utf-8').decode(xd);
+      }catch(e){}
+    }
+    i=ds+Math.max(cSz,0);
+  }
+  return files;
+}
+
 async function inflateRaw(c){
   const ds=new DecompressionStream('deflate-raw');const w=ds.writable.getWriter();w.write(c);w.close();
   const r=ds.readable.getReader();const chunks=[];
@@ -372,81 +446,139 @@ async function inflateRaw(c){
   for(const c of chunks){out.set(c,off);off+=c.length;}return out;
 }
 
-// ── API CALL (direct browser, CORS bypass) ────────────────────
+// ── IMAGE RESIZE ──────────────────────────────────────────────
+async function resizeImageB64(b64,mimeType,maxPx){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      let{width:w,height:h}=img;
+      if(w<=maxPx&&h<=maxPx){res({b64,mt:mimeType});return;}
+      const scale=maxPx/Math.max(w,h);w=Math.round(w*scale);h=Math.round(h*scale);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      const out=cv.toDataURL('image/jpeg',.88).split(',')[1];
+      res({b64:out,mt:'image/jpeg'});
+    };
+    img.onerror=()=>res({b64,mt:mimeType});
+    img.src=`data:${mimeType};base64,${b64}`;
+  });
+}
+
+// ── API CALL via Cloudflare Worker ────────────────────────────
+// Worker proxies to Anthropic and forwards all headers/body unchanged.
 const WORKER_URL='https://shrill-night-ad6b.hidden-heart-fabb.workers.dev/';
+
 async function callApi(messages, system, maxTokens){
   const key=aki.value.trim();
-  // Use fetch with the official browser-direct header
+  const body={model:'claude-sonnet-4-5',max_tokens:maxTokens||4000,messages};
+  if(system)body.system=system;
   const resp=await fetch(WORKER_URL,{
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:maxTokens||4000,system:system,messages:messages})
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify(body)
   });
-  if(!resp.ok){
-    const err=await resp.json().catch(()=>({}));
-    throw new Error((err.error?.message)||`HTTP ${resp.status}`);
-  }
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error?.message)||`HTTP ${resp.status}`);}
   const data=await resp.json();
   if(data.error)throw new Error(data.error.message);
   return data.content?.[0]?.text||'';
 }
 
-// ── OCR ───────────────────────────────────────────────────────
-async function ocrImg(b64,mimeType){
-  const {b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
+// ── STREAMING API CALL ────────────────────────────────────────
+// Streams SSE from Cloudflare Worker. Worker must pass through stream.
+// onChunk(text) called with each incremental text fragment.
+async function callApiStream(messages, system, maxTokens, onChunk){
+  const key=aki.value.trim();
+  const body={model:'claude-sonnet-4-5',max_tokens:maxTokens||4000,stream:true,messages};
+  if(system)body.system=system;
+  const resp=await fetch(WORKER_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify(body)
+  });
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error?.message)||`HTTP ${resp.status}`);}
+
+  // Try streaming (SSE). If worker returns non-streaming JSON, fall back gracefully.
+  const ct=resp.headers.get('content-type')||'';
+  if(!ct.includes('text/event-stream')){
+    // Worker doesn't pass through SSE — fall back to full response
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message);
+    const text=data.content?.[0]?.text||'';
+    onChunk(text);
+    return text;
+  }
+
+  // Parse SSE stream
+  const reader=resp.body.getReader();
+  const decoder=new TextDecoder();
+  let buf='',full='';
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    buf+=decoder.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop()||'';
+    for(const line of lines){
+      if(!line.startsWith('data:'))continue;
+      const d=line.slice(5).trim();
+      if(d==='[DONE]')break;
+      try{
+        const ev=JSON.parse(d);
+        const delta=ev.delta?.text||ev.delta?.value||'';
+        if(delta){full+=delta;onChunk(delta);}
+      }catch{}
+    }
+  }
+  return full;
+}
+
+// ── OCR via Vision API ────────────────────────────────────────
+async function extractViaVision(b64,mimeType,prompt){
+  const{b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
   return callApi([{role:'user',content:[
     {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
-    {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。レイアウトを保ち、見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
+    {type:'text',text:prompt}
   ]}],null,2000);
 }
 
-// ── RESUME OCR for images skipped before key was entered ──────
-async function resumeOcr(){
-  if(!P||extracting)return;
-  const key=aki.value.trim();
-  if(!key.startsWith('sk-ant-'))return;
-  for(let i=0;i<P.inlineImages.length;i++){
-    if(ocrTexts[i]&&ocrTexts[i].length>5)continue; // already done
-    const img=P.inlineImages[i];
-    const rid='r-img'+i;
-    // Update status row if exists
-    const dtEl=document.getElementById('dt-'+rid);
-    const tgEl=document.getElementById('tg-'+rid);
-    if(dtEl)dtEl.textContent='OCR中...';
-    if(tgEl){tgEl.className='er-tag tg-run';tgEl.innerHTML='<span class="spin-sm"></span>';}
+async function ocrImgWithRetry(b64,mimeType,retries=2){
+  const{b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
+  for(let attempt=0;attempt<=retries;attempt++){
     try{
-      const txt=await ocrImgWithRetry(img.b64,img.mimeType,key);
-      if(txt&&txt.length>5){
-        ocrTexts[i]=txt;
-        if(dtEl)dtEl.textContent=txt.length+'文字';
-        if(tgEl){tgEl.className='er-tag tg-ok';tgEl.textContent='✓ OCR完了';}
-      }
+      return await callApi([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
+        {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
+      ]}],null,2000);
     }catch(e){
-      if(dtEl)dtEl.textContent='OCRエラー';
-      if(tgEl){tgEl.className='er-tag tg-err';tgEl.textContent='✗';}
+      if(attempt===retries)throw e;
+      await new Promise(r=>setTimeout(r,1000*(attempt+1)));
     }
   }
-  // Update status summary
-  const hasBody=(P.textBody&&P.textBody.trim().length>20)||(P.htmlBody&&P.htmlBody.trim().length>20);
-  const hasDocx=Object.keys(docxTexts).length>0;
-  const ocrDone=Object.values(ocrTexts).filter(t=>t&&t.length>5).length;
-  const hasOcr=ocrDone>0;
-  const ok=hasBody||hasDocx||hasOcr;
-  const parts=[];
-  if(hasBody)parts.push('本文');
-  if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
-  if(hasOcr)parts.push('OCR'+ocrDone+'件');
-  setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',
-    Array.from(esBody.children).map(c=>c.outerHTML));
+}
+
+// ── PARALLEL OCR — run all images simultaneously ──────────────
+// Returns a promise that resolves when all OCR jobs finish.
+// Results are written into ocrTexts[] as they complete.
+// onProgress(i, status, chars) called for UI updates.
+function startParallelOcr(images, onProgress){
+  if(!images||images.length===0)return Promise.resolve();
+  const key=aki.value.trim();
+  if(!key.startsWith('sk-ant-'))return Promise.resolve();
+
+  const promises=images.map((img,i)=>{
+    onProgress(i,'run',0);
+    return ocrImgWithRetry(img.b64,img.mimeType)
+      .then(txt=>{
+        if(txt&&txt.length>5){ocrTexts[i]=txt;onProgress(i,'ok',txt.length);}
+        else onProgress(i,'err',0);
+      })
+      .catch(()=>onProgress(i,'err',0));
+  });
+  return Promise.all(promises);
 }
 
 // ── STATE ─────────────────────────────────────────────────────
 let P=null,RAW='',docxTexts={},ocrTexts={},extracting=false;
+let ocrPromise=null; // resolves when parallel OCR completes
 const $=id=>document.getElementById(id);
 const dz=$('dz'),fi=$('fi'),fc=$('fc'),fcn=$('fcn'),fcm=$('fcm');
 const es=$('es'),esHdr=$('es-hdr'),esBody=$('es-body');
@@ -458,16 +590,18 @@ const emp=$('emp'),ld=$('ld'),rs=$('rs'),spt=$('spt'),sps=$('sps');
 const paneP1=$('paneP1'),paneP2=$('paneP2'),rs2=$('rs2'),p2Overlay=$('p2Overlay'),p2Msg=$('p2Msg'),p2Sub=$('p2Sub'),ocrProg=$('ocrProg');
 const setupGuide=$('setupGuide');
 
+// Track OCR row state separately so updates are non-destructive
+let ocrRows={};
+
 // API key
 const sk=sessionStorage.getItem('rmrs');if(sk){aki.value=sk;vk(sk);}
 aki.addEventListener('input',()=>{
   const v=aki.value.trim();
   sessionStorage.setItem('rmrs',v);
   vk(v);
-  // When a valid key is entered, OCR any pending images
-  if(v.startsWith('sk-ant-')&&P&&P.inlineImages.length>0&&!extracting){
-    const pending=P.inlineImages.filter((_,i)=>!ocrTexts[i]||ocrTexts[i].length<5);
-    if(pending.length>0)resumeOcr();
+  // When a valid key is entered and EML has images not yet OCR'd, kick off parallel OCR
+  if(v.startsWith('sk-ant-')&&P&&P.inlineImages.length>0&&!ocrPromise){
+    kickOffParallelOcr();
   }
 });
 akt.addEventListener('click',()=>{aki.type=aki.type==='password'?'text':'password';});
@@ -476,7 +610,6 @@ function vk(v){
   if(!v){akh.textContent='APIキーを入力してください';return;}
   if(!v.startsWith('sk-ant-')){aki.classList.add('ng');akh.textContent='⚠ sk-ant- で始まるキーを入力';akh.classList.add('ng');return;}
   aki.classList.add('ok');akh.textContent='✓ 設定済み（セッション中のみ保持）';akh.classList.add('ok');
-  // Hide setup guide once key is entered
   if(setupGuide)setupGuide.style.display='none';
 }
 
@@ -486,16 +619,16 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('ov'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('ov');if(e.dataTransfer.files[0])lf(e.dataTransfer.files[0]);});
 dz.addEventListener('click',()=>fi.click());
 fi.addEventListener('change',e=>{if(e.target.files[0])lf(e.target.files[0]);});
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── LOAD & AUTO-EXTRACT ───────────────────────────────────────
 let currentFileType='eml';
-let directContent=''; // for non-eml files
+let directContent='';
 
 function lf(file){
   currentFileType=getFileType(file);
   directContent='';
-  P=null;RAW='';docxTexts={};ocrTexts={};extracting=true;p1Json=null;
+  P=null;RAW='';docxTexts={};ocrTexts={};ocrRows={};extracting=true;p1Json=null;ocrPromise=null;
   if(paneP2)paneP2.style.display='none';
   if(paneP1)paneP1.style.flex='1';
   const _h=document.getElementById('paneP1Hdr');if(_h)_h.style.display='none';
@@ -515,10 +648,9 @@ function lf(file){
     rd.readAsText(file,'utf-8');
   } else if(currentFileType==='txt'){
     const rd=new FileReader();
-    rd.onload=async e=>{directContent=e.target.result;await autoExtractDirect(file,directContent,currentFileType);};
+    rd.onload=async e=>{directContent=e.target.result;await autoExtractDirect(file,directContent);};
     rd.readAsText(file,'utf-8');
   } else {
-    // Binary files: read as base64
     const rd=new FileReader();
     rd.onload=async e=>{
       const b64=e.target.result.split(',')[1];
@@ -528,7 +660,7 @@ function lf(file){
   }
 }
 
-async function autoExtractDirect(file,text,ft){
+async function autoExtractDirect(file,text){
   extracting=false;
   directContent=text;
   const rows=[mkRow('📝',file.name,text.length+'文字','tg-ok','✓ 取得','r-main')];
@@ -591,9 +723,11 @@ async function autoExtractBinary(file,b64,ft){
   p1.disabled=false;p2.disabled=false;
 }
 
+// ── EML AUTO-EXTRACT: body + docx + kick off parallel OCR ─────
 async function autoExtract(p){
   const key=aki.value.trim();
   const rows=[];
+
   // 1. Body text
   let body=p.textBody&&p.textBody.trim().length>20?p.textBody.trim():'';
   if(!body&&p.htmlBody&&p.htmlBody.trim().length>20)body=h2t(p.htmlBody);
@@ -601,51 +735,94 @@ async function autoExtract(p){
   else rows.push(mkRow('⚠️','本文テキスト','抽出不能','tg-err','EMPTY','r-body'));
   setStatus('run','⚙ 解析中...',rows);
 
-  // 2. Docx auto-extract
-  for(const att of p.attachments){
-    if(!att.name.match(/\.docx?$/i)&&!(att.mimeType||'').match(/word|officedocument/i))continue;
-    if(!att.data)continue;
-    const rid='r-'+att.name.replace(/\W/g,'_').substring(0,20);
-    rows.push(mkRow('📎',att.name.substring(0,26),'解析中...','tg-run','<span class="spin-sm"></span>',rid));
-    setStatus('run','⚙ docx解析中...',rows);
-    const txt=await extractDocx(att.data);
-    if(txt&&txt.length>50){
-      docxTexts[att.name]=txt;
-      updRow(rid,(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');
-    }else{
-      updRow(rid,'抽出失敗','tg-err','✗');
-    }
-  }
+  // 2. Docx auto-extract (ローカル処理、並列可)
+  const docxJobs=p.attachments
+    .filter(att=>att.data&&(att.name.match(/\.docx?$/i)||(att.mimeType||'').match(/word|officedocument/i)))
+    .map(att=>{
+      const rid='r-'+att.name.replace(/\W/g,'_').substring(0,20);
+      rows.push(mkRow('📎',att.name.substring(0,26),'解析中...','tg-run','<span class="spin-sm"></span>',rid));
+      setStatus('run','⚙ docx解析中...',rows);
+      return extractDocx(att.data).then(txt=>{
+        if(txt&&txt.length>50){docxTexts[att.name]=txt;updRow(rid,(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');}
+        else updRow(rid,'抽出失敗','tg-err','✗');
+      });
+    });
+  await Promise.all(docxJobs);
 
-  // 3. Inline images — auto OCR
-  for(let i=0;i<p.inlineImages.length;i++){
-    const img=p.inlineImages[i];
-    const rid='r-img'+i;
+  // 3. Inline images — kick off PARALLEL OCR immediately in background
+  if(p.inlineImages.length>0){
     if(key.startsWith('sk-ant-')){
-      rows.push(mkRow('🖼',img.name.substring(0,26),'OCR中...','tg-run','<span class="spin-sm"></span>',rid));
-      setStatus('run','⚙ OCR実行中...',rows);
-      try{
-        const txt=await ocrImg(img.b64,img.mimeType);
-        ocrTexts[i]=txt;
-        updRow(rid,txt.length+'文字','tg-ok','✓ OCR完了');
-      }catch(e){
-        updRow(rid,'OCRエラー: '+e.message.substring(0,30),'tg-err','✗');
+      // Add rows for all images upfront
+      for(let i=0;i<p.inlineImages.length;i++){
+        const img=p.inlineImages[i];
+        const rid='r-img'+i;
+        ocrRows[i]=rid;
+        rows.push(mkRow('🖼',img.name.substring(0,26),'OCR中...','tg-run','<span class="spin-sm"></span>',rid));
       }
+      setStatus('run','⚙ 画像OCR並列実行中...',rows);
+
+      // Start all OCR jobs in parallel — do NOT await here
+      ocrPromise=startParallelOcr(p.inlineImages,(i,status,chars)=>{
+        const rid=ocrRows[i]||('r-img'+i);
+        if(status==='ok')updRow(rid,chars+'文字','tg-ok','✓ OCR完了');
+        else if(status==='err')updRow(rid,'OCRエラー','tg-err','✗');
+        // Update summary header
+        const done=Object.values(ocrTexts).filter(t=>t&&t.length>5).length;
+        const hasBody=body.length>20,hasDocx=Object.keys(docxTexts).length>0;
+        if(done>0||hasBody||hasDocx){
+          const parts=[];
+          if(hasBody)parts.push('本文');
+          if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
+          if(done>0)parts.push('OCR'+done+'/'+p.inlineImages.length+'件');
+          setStatus('ok','✓ '+parts.join(' / ')+' — スキャン可能',rows);
+        }
+      });
     }else{
-      rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機',rid));
+      for(let i=0;i<p.inlineImages.length;i++){
+        const img=p.inlineImages[i];
+        const rid='r-img'+i;
+        ocrRows[i]=rid;
+        rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機',rid));
+      }
     }
   }
 
   extracting=false;
-  const hasBody=body.length>20,hasDocx=Object.keys(docxTexts).length>0,hasOcr=Object.values(ocrTexts).some(t=>t&&t.length>10);
-  const ok=hasBody||hasDocx||hasOcr;
-  const parts=[];
-  if(hasBody)parts.push('本文'+body.length+'文字');
-  if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
-  if(hasOcr)parts.push('OCR '+Object.values(ocrTexts).filter(t=>t&&t.length>10).length+'件');
-  setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',rows);
+  const hasBody=body.length>20,hasDocx=Object.keys(docxTexts).length>0;
+  const ok=hasBody||hasDocx||p.inlineImages.length>0;
+  if(!p.inlineImages.length||!aki.value.trim().startsWith('sk-ant-')){
+    const parts=[];
+    if(hasBody)parts.push('本文'+body.length+'文字');
+    if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
+    setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',rows);
+  }
   p1.disabled=false;p2.disabled=false;
   showEmp();
+}
+
+// Called when API key entered after file load (EML with images)
+function kickOffParallelOcr(){
+  if(!P||!P.inlineImages.length||ocrPromise)return;
+  const rows=Array.from(esBody.children).map(c=>c.outerHTML);
+  const body=P.textBody&&P.textBody.trim().length>20?P.textBody.trim():h2t(P.htmlBody||'');
+
+  for(let i=0;i<P.inlineImages.length;i++){
+    const rid=ocrRows[i]||'r-img'+i;
+    updRow(rid,'OCR中...','tg-run','<span class="spin-sm"></span>');
+  }
+
+  ocrPromise=startParallelOcr(P.inlineImages,(i,status,chars)=>{
+    const rid=ocrRows[i]||('r-img'+i);
+    if(status==='ok')updRow(rid,chars+'文字','tg-ok','✓ OCR完了');
+    else if(status==='err')updRow(rid,'OCRエラー','tg-err','✗');
+    const done=Object.values(ocrTexts).filter(t=>t&&t.length>5).length;
+    const hasBody=body.length>20,hasDocx=Object.keys(docxTexts).length>0;
+    const parts=[];
+    if(hasBody)parts.push('本文');
+    if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
+    if(done>0)parts.push('OCR'+done+'/'+P.inlineImages.length+'件');
+    esHdr.textContent=(hasBody||hasDocx||done>0)?'✓ '+parts.join(' / ')+' — スキャン可能':'⚙ OCR実行中...';
+  });
 }
 
 function mkRow(ic,label,detail,tagCls,tagHtml,id){return `<div class="er" id="${id||''}"><span class="er-ic">${ic}</span><div class="er-inf"><div class="er-lbl">${esc(label)}</div><div class="er-dt" id="dt-${id||''}">${esc(detail)}</div></div><span class="er-tag ${tagCls}" id="tg-${id||''}">${tagHtml}</span></div>`;}
@@ -664,8 +841,9 @@ function showHeaders(p){
 function showEmp(){emp.style.display='flex';ld.classList.remove('on');rs.classList.remove('on');}
 function showLd(t,s){emp.style.display='none';ld.classList.add('on');rs.classList.remove('on');spt.textContent=t;sps.textContent=s||'';}
 function showRs(){emp.style.display='none';ld.classList.remove('on');rs.classList.add('on');}
+
 cl.addEventListener('click',()=>{
-  P=null;RAW='';docxTexts={};ocrTexts={};extracting=false;p1Json=null;directContent='';currentFileType='eml';
+  P=null;RAW='';docxTexts={};ocrTexts={};ocrRows={};extracting=false;p1Json=null;directContent='';currentFileType='eml';ocrPromise=null;
   fc.classList.remove('on');es.classList.remove('on');hp.classList.remove('on');
   p1.disabled=true;p2.disabled=true;fi.value='';
   pb.style.display='none';rb.style.display='none';
@@ -701,126 +879,10 @@ next_step: Specific concrete actions only.
 ja=business Japanese. en=financial English.`;
 
 // ── RUN ───────────────────────────────────────────────────────
-let p1Json = null; // store Phase 1 result for split view
-
-async function run(phase){
-  if(!P && !directContent)return;
-  const key=aki.value.trim();
-  if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください（sk-ant-...）');return;}
-  if(extracting){
-    showLd('⏳ 自動解析完了を待機中...','');
-    await new Promise(res=>{const t=setInterval(()=>{if(!extracting){clearInterval(t);res();}},200);});
-  }
-
-  pb.style.display='inline-block';
-  pb.className='badge '+(phase===1?'b-p1':'b-p2');
-  pb.textContent='PHASE '+phase;
-  rb.style.display='none';
-
-  // Build content
-  const {emailContent, bodyEmpty} = buildContent(phase);
-
-  if(phase===1){
-    // ── PHASE 1: single pane, full width ──────────────────────
-    paneP2.style.display='none';
-    paneP1.style.flex='1';
-    document.getElementById('paneP1Hdr').style.display='none';
-    showLd('⚡ Rapid Scan 実行中...','');
-    try{
-      const j = await callAndParse(emailContent, 'PHASE 1 RAPID SCAN', 4000);
-      if(!j)return;
-      p1Json = j;
-      renderInto(j, bodyEmpty, rs);
-      showRs();
-      updateRiskBadge(j);
-    }catch(e){ errOut('APIエラー: '+e.message, rs); showRs(); }
-
-  }else{
-    // ── PHASE 2: split layout ─────────────────────────────────
-    // Show Phase 1 on left immediately
-    paneP2.style.display='flex';
-    paneP2.style.flexDirection='column';
-    paneP1.style.flex='1';
-    document.getElementById('paneP1Hdr').style.display='flex';
-
-    if(!p1Json){
-      // Phase 1 not run yet — show loading on left, run it first
-      showLd('⚡ Phase 1 を先に実行中...','');
-      try{
-        const j = await callAndParse(emailContent, 'PHASE 1 RAPID SCAN', 4000);
-        if(j){ p1Json=j; renderInto(j, bodyEmpty, rs); showRs(); updateRiskBadge(j); }
-      }catch(e){ showRs(); }
-    } else {
-      // Phase 1 already done — keep it visible
-      showRs();
-    }
-
-    // Show Phase 2 pane with loading overlay
-    p2Overlay.classList.remove('hidden');
-    rs2.innerHTML='';
-    p2Msg.textContent='🔬 Deep Dive 実行中...';
-    p2Sub.textContent='';
-    ocrProg.textContent='';
-
-    // Run OCR on remaining images (Phase 2 does ALL images)
-    await runPhase2Ocr(p2Sub, ocrProg);
-
-    // Rebuild content with OCR results
-    const {emailContent: ec2, bodyEmpty: be2} = buildContent(2);
-    p2Sub.textContent='Claude API 呼び出し中...';
-
-    try{
-      const j2 = await callAndParse(ec2, 'PHASE 2 DEEP DIVE — analyze ALL provided content thoroughly, extract specific figures, dates, amounts, names, and decisions from email body AND all attachment/OCR content', 5000);
-      p2Overlay.classList.add('hidden');
-      if(!j2)return;
-      renderInto(j2, be2, rs2);
-      updateRiskBadge(j2);
-    }catch(e){
-      p2Overlay.classList.add('hidden');
-      errOut('Deep Dive エラー: '+e.message, rs2);
-    }
-  }
-}
-
-async function runPhase2Ocr(subEl, progEl){
-  if(!P)return;
-  const key=aki.value.trim();
-  const total=P.inlineImages.length;
-  if(total===0)return;
-  let done=0;
-  for(let i=0;i<total;i++){
-    if(ocrTexts[i]&&ocrTexts[i].length>5){done++;continue;} // already done
-    const img=P.inlineImages[i];
-    progEl.textContent=`画像OCR ${i+1}/${total}...`;
-    try{
-      const txt=await ocrImgWithRetry(img.b64, img.mimeType, key);
-      if(txt&&txt.length>5)ocrTexts[i]=txt;
-      done++;
-      progEl.textContent=`OCR完了 ${done}/${total}`;
-    }catch(e){
-      progEl.textContent=`OCR ${i+1} スキップ`;
-    }
-  }
-  progEl.textContent=done>0?`✓ OCR ${done}件完了`:'';
-}
-
-async function ocrImgWithRetry(b64, mimeType, key, retries=2){
-  const {b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
-  for(let attempt=0;attempt<=retries;attempt++){
-    try{
-      return await callApi([{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
-        {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
-      ]}],null,2000);
-    }catch(e){
-      if(attempt===retries)throw e;
-      await new Promise(r=>setTimeout(r,1500*(attempt+1)));
-    }
-  }
-}
+let p1Json=null;
 
 function buildContent(phase){
-  let emailContent='', bodyEmpty=false;
+  let emailContent='',bodyEmpty=false;
   if(currentFileType==='eml'&&P){
     let bodyText=P.textBody&&P.textBody.trim().length>20?P.textBody.trim():(P.htmlBody&&P.htmlBody.trim().length>20?h2t(P.htmlBody):'');
     const ocrArr=Object.entries(ocrTexts).filter(([,t])=>t&&t.trim().length>10).map(([i,t])=>`[画像OCR #${parseInt(i)+1}]\n${t}`);
@@ -837,22 +899,147 @@ function buildContent(phase){
     bodyEmpty=body.length<20;
     emailContent=`FILE TYPE: ${(currentFileType||'unknown').toUpperCase()}\nCONTENT_STATUS: ${bodyEmpty?'EMPTY':'OK ('+body.length+'文字)'}\n\n=== DOCUMENT CONTENT ===\n${body.substring(0,phase===1?6000:12000)}`;
   }
-  return {emailContent, bodyEmpty};
+  return{emailContent,bodyEmpty};
 }
 
-async function callAndParse(content, label, maxTokens){
-  const raw=await callApi([{role:'user',content:label+'. Return valid JSON only.\n\n'+content}],SYS,maxTokens);
+// Parse streaming JSON incrementally — render sections as they complete
+function parseAndRenderStream(rawAccum, bodyEmpty, target, isFirst){
+  // Try to extract complete JSON object from accumulated text
+  const f=rawAccum.indexOf('{'),l=rawAccum.lastIndexOf('}');
+  if(f===-1||l<f)return null;
+  const candidate=rawAccum.substring(f,l+1);
   try{
-    let s=raw.replace(/```json\n?|```/g,'').trim();
-    const f=s.indexOf('{'),l=s.lastIndexOf('}');
-    if(f!==-1&&l>f)s=s.substring(f,l+1);
-    return JSON.parse(s);
-  }catch(e){
-    errOut('JSON parseエラー: '+e.message+'\n\n'+raw.substring(0,400), rs);
-    return null;
+    const j=JSON.parse(candidate);
+    renderInto(j,bodyEmpty,target);
+    return j;
+  }catch{}
+  return null;
+}
+
+async function run(phase){
+  if(!P&&!directContent)return;
+  const key=aki.value.trim();
+  if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください（sk-ant-...）');return;}
+  // Wait briefly if text extraction still running (never more than 3s)
+  if(extracting){
+    showLd('⏳ テキスト抽出完了待ち...','');
+    const t0=Date.now();
+    await new Promise(res=>{const t=setInterval(()=>{if(!extracting||Date.now()-t0>3000){clearInterval(t);res();}},100);});
+  }
+
+  pb.style.display='inline-block';
+  pb.className='badge '+(phase===1?'b-p1':'b-p2');
+  pb.textContent='PHASE '+phase;
+  rb.style.display='none';
+
+  if(phase===1){
+    // ── PHASE 1: start Claude analysis immediately with available text ──
+    // OCR may still be running in background — that's fine, Phase 1 uses what's ready
+    paneP2.style.display='none';
+    paneP1.style.flex='1';
+    document.getElementById('paneP1Hdr').style.display='none';
+    showLd('⚡ Rapid Scan 実行中...','本文・添付テキストを分析中');
+
+    const{emailContent,bodyEmpty}=buildContent(1);
+    let raw='',rendered=false;
+    try{
+      await callApiStream(
+        [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],
+        SYS,4000,
+        chunk=>{
+          raw+=chunk;
+          // Try progressive render once we likely have a complete JSON
+          if(!rendered&&raw.includes('"next_step"')&&raw.includes('}')){
+            const j=parseAndRenderStream(raw,bodyEmpty,rs,true);
+            if(j){rendered=true;p1Json=j;showRs();updateRiskBadge(j);}
+          }
+        }
+      );
+      // Final parse after stream ends
+      if(!rendered){
+        const j=parseAndRenderStream(raw,bodyEmpty,rs,true);
+        if(j){p1Json=j;showRs();updateRiskBadge(j);}
+        else{errOut('JSONパースエラー:\n'+raw.substring(0,400),rs);showRs();}
+      }
+    }catch(e){errOut('APIエラー: '+e.message,rs);showRs();}
+
+  }else{
+    // ── PHASE 2: wait for OCR to complete, then deep dive ──────────────
+    // Show Phase 1 result on left
+    paneP2.style.display='flex';
+    paneP2.style.flexDirection='column';
+    paneP1.style.flex='1';
+    document.getElementById('paneP1Hdr').style.display='flex';
+
+    if(!p1Json){
+      showLd('⚡ Phase 1 を先に実行中...','');
+      const{emailContent:ec1,bodyEmpty:be1}=buildContent(1);
+      let raw1='';
+      try{
+        await callApiStream(
+          [{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+ec1}],
+          SYS,4000,chunk=>{raw1+=chunk;}
+        );
+        const j=parseAndRenderStream(raw1,be1,rs,true);
+        if(j){p1Json=j;showRs();updateRiskBadge(j);}else showRs();
+      }catch(e){showRs();}
+    }else{
+      showRs();
+    }
+
+    // Show Phase 2 pane with loading overlay
+    p2Overlay.classList.remove('hidden');
+    rs2.innerHTML='';
+    p2Msg.textContent='🔬 Deep Dive 実行中...';
+    p2Sub.textContent='';
+    ocrProg.textContent='';
+
+    // Wait for all parallel OCR to finish before deep dive
+    if(ocrPromise){
+      p2Sub.textContent='画像OCR完了待ち...';
+      const ocrStart=Date.now();
+      const ocrCount=P?P.inlineImages.length:0;
+      // Update progress indicator while waiting
+      const progTimer=setInterval(()=>{
+        const done=Object.values(ocrTexts).filter(t=>t&&t.length>5).length;
+        if(ocrCount>0)ocrProg.textContent=`OCR ${done}/${ocrCount} 完了`;
+      },300);
+      await ocrPromise;
+      clearInterval(progTimer);
+      ocrProg.textContent='✓ OCR完了';
+    }
+
+    // Deep dive with full content
+    const{emailContent:ec2,bodyEmpty:be2}=buildContent(2);
+    p2Sub.textContent='Claude Deep Dive 分析中...';
+    ocrProg.textContent='';
+
+    let raw2='',rendered2=false;
+    try{
+      await callApiStream(
+        [{role:'user',content:'PHASE 2 DEEP DIVE — analyze ALL provided content thoroughly, extract specific figures, dates, amounts, names, and decisions from email body AND all attachment/OCR content. Return valid JSON only.\n\n'+ec2}],
+        SYS,6000,
+        chunk=>{
+          raw2+=chunk;
+          if(!rendered2&&raw2.includes('"next_step"')&&raw2.includes('}')){
+            const j=parseAndRenderStream(raw2,be2,rs2,false);
+            if(j){rendered2=true;p2Overlay.classList.add('hidden');updateRiskBadge(j);}
+          }
+        }
+      );
+      if(!rendered2){
+        const j=parseAndRenderStream(raw2,be2,rs2,false);
+        if(j){p2Overlay.classList.add('hidden');updateRiskBadge(j);}
+        else{p2Overlay.classList.add('hidden');errOut('Deep Dive JSONパースエラー:\n'+raw2.substring(0,400),rs2);}
+      }
+    }catch(e){
+      p2Overlay.classList.add('hidden');
+      errOut('Deep Dive エラー: '+e.message,rs2);
+    }
   }
 }
 
+// ── RENDER ────────────────────────────────────────────────────
 function updateRiskBadge(j){
   const lvl=(j.signal?.level||'').toLowerCase();
   rb.style.display='inline-block';
@@ -862,8 +1049,7 @@ function updateRiskBadge(j){
   else{rb.className='badge';rb.style.cssText='background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)';rb.textContent='? UNKNOWN';}
 }
 
-// ── RENDER ────────────────────────────────────────────────────
-function renderInto(j, bodyEmpty, target){
+function renderInto(j,bodyEmpty,target){
   target.innerHTML='';
   const lvl=(j.signal?.level||'').toLowerCase();
   let d=0;
@@ -892,8 +1078,6 @@ function renderInto(j, bodyEmpty, target){
   }
 }
 
-function render(j,bodyEmpty){renderInto(j,bodyEmpty,rs);showRs();updateRiskBadge(j);}
-
 function mks(icon,title,cls,delay){
   const s=document.createElement('div');s.className='sec '+(cls||'');s.style.animationDelay=delay+'ms';
   s.innerHTML=`<div class="sh"><span class="si">${icon}</span><span class="st">${esc(title)}</span><span class="stag">JA / EN</span></div>`;return s;
@@ -906,12 +1090,11 @@ function md(t){
   if(!t)return'';
   return esc(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/(⚠[^\n]+)/g,'<div class="wl"><span>⚠</span><span>$1</span></div>').replace(/^[-•]\s(.+)$/gm,'<li>$1</li>').replace(/(<li>.*?<\/li>\n?)+/gs,m=>'<ul>'+m+'</ul>').replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
 }
-function errOut(msg, target){
+function errOut(msg,target){
   const el=target||rs;
   el.innerHTML=`<div class="sec c-dg"><div class="sh"><span class="si">⚠</span><span class="st">Error</span></div><div style="padding:12px 14px"><pre style="font-family:var(--mo);font-size:11px;color:var(--dg);white-space:pre-wrap">${esc(msg)}</pre></div></div>`;
   if(target===rs||!target)showRs();
 }
-
 </script>
 </body>
 </html>
