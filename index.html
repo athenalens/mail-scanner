@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rapid Mail Risk Scanner</title>
+<title>Document Risk Scanner</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@300;400;500;600&display=swap');
 :root{
@@ -30,105 +30,122 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);font-size:14px;l
 .b-lo{background:var(--ok-d);color:var(--ok);border:1px solid rgba(52,199,89,.2)}
 .hdr-sub{font-family:var(--mo);font-size:11px;color:var(--dm)}
 .main{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
-.left{width:290px;min-width:250px;border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);overflow-y:auto;flex-shrink:0}
-.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;cursor:pointer;transition:all .2s;border:2px dashed transparent;margin:10px;border-radius:8px;min-height:80px;flex-shrink:0}
+.left{width:300px;min-width:260px;border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--sf);overflow-y:auto}
+/* Setup banner */
+.setup{margin:10px;padding:10px 12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:6px;flex-shrink:0}
+.setup-title{font-family:var(--mo);font-size:10px;color:var(--ac);font-weight:600;letter-spacing:.06em;margin-bottom:6px}
+.setup-step{font-family:var(--mo);font-size:10px;color:var(--dm);line-height:1.7}
+.setup-step b{color:var(--br)}
+.setup-step code{background:var(--bg);padding:1px 5px;border-radius:3px;color:var(--ac);font-size:10px}
+/* Drop zone */
+.dz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;cursor:pointer;transition:all .2s;border:2px dashed transparent;margin:10px;border-radius:8px;min-height:96px;flex-shrink:0}
 .dz.ov{border-color:var(--ac);background:var(--ac-d)}
-.dz-ic{width:40px;height:40px;border:1.5px solid var(--bd2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--dm);background:var(--sf2);transition:all .2s}
+.dz-ic{width:44px;height:44px;border:1.5px solid var(--bd2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--dm);background:var(--sf2);transition:all .2s}
 .dz:hover .dz-ic,.dz.ov .dz-ic{border-color:var(--ac);color:var(--ac);box-shadow:0 0 16px var(--ac-g)}
-.dz-tx strong{display:block;color:var(--br);font-weight:500;font-size:12px;margin-bottom:2px;text-align:center}
-.dz-tx span{color:var(--dm);font-size:10px;font-family:var(--mo);display:block;text-align:center}
+.dz-tx strong{display:block;color:var(--br);font-weight:500;font-size:13px;margin-bottom:2px;text-align:center}
+.dz-tx span{color:var(--dm);font-size:11px;font-family:var(--mo);display:block;text-align:center}
 input[type=file]{display:none}
-.fc{margin:0 10px 6px;padding:7px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;display:none;flex-shrink:0}
+/* File type badge */
+.ft-badge{font-family:var(--mo);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;margin-top:4px}
+.ft-eml{background:rgba(0,212,255,.12);color:var(--ac);border:1px solid rgba(0,212,255,.2)}
+.ft-doc{background:rgba(116,185,255,.12);color:var(--bl);border:1px solid rgba(116,185,255,.2)}
+.ft-xls{background:rgba(52,199,89,.12);color:var(--ok);border:1px solid rgba(52,199,89,.2)}
+.ft-ppt{background:rgba(255,149,0,.12);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
+.ft-pdf{background:rgba(255,59,59,.12);color:var(--dg);border:1px solid rgba(255,59,59,.2)}
+.ft-img{background:rgba(162,155,254,.12);color:#a29bfe;border:1px solid rgba(162,155,254,.2)}
+.ft-txt{background:rgba(200,205,214,.12);color:var(--tx);border:1px solid var(--bd2)}
+.fc{margin:0 10px 6px;padding:8px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;display:none;flex-shrink:0}
 .fc.on{display:block}
 .fc-n{font-family:var(--mo);font-size:11px;color:var(--ac);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fc-m{font-family:var(--mo);font-size:10px;color:var(--dm)}
+/* Extraction status */
 .es{margin:0 10px 6px;border-radius:6px;overflow:hidden;display:none;flex-shrink:0}
 .es.on{display:block}
-.es-hdr{display:flex;align-items:center;gap:7px;padding:6px 10px;font-family:var(--mo);font-size:10px;font-weight:600;letter-spacing:.05em;border-bottom:1px solid var(--bd)}
-.es-body{padding:4px 7px;display:flex;flex-direction:column;gap:2px;max-height:160px;overflow-y:auto}
+.es-hdr{display:flex;align-items:center;gap:7px;padding:7px 10px;font-family:var(--mo);font-size:10px;font-weight:600;letter-spacing:.05em;border-bottom:1px solid var(--bd)}
+.es-body{padding:5px 8px;display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto}
 .es.st-run{background:var(--sf2);border:1px solid var(--bd2)}.es.st-run .es-hdr{color:var(--ac)}
 .es.st-ok{background:var(--ok-d);border:1px solid rgba(52,199,89,.2)}.es.st-ok .es-hdr{color:var(--ok)}
 .es.st-warn{background:var(--wn-d);border:1px solid rgba(255,149,0,.25)}.es.st-warn .es-hdr{color:var(--wn)}
-.er{display:flex;align-items:center;gap:6px;padding:3px 4px;border-radius:4px;background:var(--bg)}
-.er-ic{font-size:11px;width:15px;text-align:center;flex-shrink:0}
+.er{display:flex;align-items:center;gap:7px;padding:4px 5px;border-radius:4px;background:var(--bg)}
+.er-ic{font-size:12px;width:16px;text-align:center;flex-shrink:0}
 .er-inf{flex:1;min-width:0}
 .er-lbl{font-family:var(--mo);font-size:10px;color:var(--br);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .er-dt{font-family:var(--mo);font-size:9px;color:var(--dm)}
 .er-tag{font-family:var(--mo);font-size:9px;padding:1px 5px;border-radius:2px;flex-shrink:0;white-space:nowrap}
 .tg-ok{background:var(--ok-d);color:var(--ok)}.tg-run{background:var(--ac-d);color:var(--ac)}.tg-err{background:var(--dg-d);color:var(--dg)}.tg-skip{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)}
-.hp{border-top:1px solid var(--bd);padding:8px 10px;display:none;flex-direction:column;gap:4px;flex-shrink:0}
+/* Headers */
+.hp{border-top:1px solid var(--bd);padding:10px 12px;display:none;flex-direction:column;gap:5px;flex-shrink:0}
 .hp.on{display:flex}
 .hl{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
 .hr-r{display:flex;gap:5px}
-.hk{font-family:var(--mo);font-size:10px;color:var(--dm);min-width:48px;flex-shrink:0}
-.hv{font-family:var(--mo);font-size:10px;color:var(--br);word-break:break-all;line-height:1.4}
+.hk{font-family:var(--mo);font-size:10px;color:var(--dm);min-width:52px;flex-shrink:0}
+.hv{font-family:var(--mo);font-size:10px;color:var(--br);word-break:break-all;line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
 .chip{font-family:var(--mo);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--wn-d);color:var(--wn);border:1px solid rgba(255,149,0,.2)}
-.ak-w{margin:6px 10px;padding:8px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;flex-shrink:0}
+/* API key */
+.ak-w{margin:8px 10px;padding:9px 10px;background:var(--sf2);border:1px solid var(--bd2);border-radius:6px;flex-shrink:0}
 .ak-l{font-family:var(--mo);font-size:9px;color:var(--dm);letter-spacing:.1em;margin-bottom:4px}
 .ak-r{display:flex;gap:4px}
-.ak-i{flex:1;background:var(--bg);border:1px solid var(--bd2);border-radius:4px;color:var(--br);font-family:var(--mo);font-size:11px;padding:4px 7px;outline:none;transition:border-color .2s}
+.ak-i{flex:1;background:var(--bg);border:1px solid var(--bd2);border-radius:4px;color:var(--br);font-family:var(--mo);font-size:11px;padding:5px 8px;outline:none;transition:border-color .2s}
 .ak-i:focus{border-color:var(--ac)}.ak-i.ok{border-color:var(--ok)}.ak-i.ng{border-color:var(--dg)}
 .ak-t{background:var(--sf);border:1px solid var(--bd2);border-radius:4px;color:var(--dm);cursor:pointer;font-size:11px;padding:3px 6px}
 .ak-h{font-family:var(--mo);font-size:10px;color:var(--dm);margin-top:3px;min-height:13px}
 .ak-h.ok{color:var(--ok)}.ak-h.ng{color:var(--dg)}
-.acts{padding:8px 10px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:5px;flex-shrink:0}
-.btn{width:100%;padding:8px 12px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mo);font-size:11px;font-weight:600;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+/* Actions */
+.acts{padding:10px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.btn{width:100%;padding:9px 12px;border-radius:6px;border:none;cursor:pointer;font-family:var(--mo);font-size:12px;font-weight:600;letter-spacing:.05em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn:disabled{opacity:.3;cursor:not-allowed}
 .bp1{background:var(--ac);color:#000}.bp1:not(:disabled):hover{background:#33ddff;box-shadow:0 0 14px var(--ac-g)}
 .bp2{background:transparent;color:var(--wn);border:1px solid rgba(255,149,0,.3)}.bp2:not(:disabled):hover{background:var(--wn-d)}
-.bclr{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2);font-size:10px}.bclr:hover{color:var(--br)}
-
-/* ── RIGHT PANEL ── */
-.right{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.bclr{background:var(--sf2);color:var(--dm);border:1px solid var(--bd2);font-size:11px}.bclr:hover{color:var(--br)}
+/* Right */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .ob{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
 .ob-l{font-family:var(--mo);font-size:11px;color:var(--dm);letter-spacing:.05em;text-transform:uppercase}
-
-/* Split mode: Phase 1 left / Phase 2 right */
-.out-wrap{flex:1;overflow:hidden;display:flex}
-.out-single{flex:1;overflow-y:auto;padding:16px}
-.out-split{flex:1;display:none;overflow:hidden}
-.out-split.on{display:flex}
-.split-col{flex:1;overflow-y:auto;padding:14px;min-width:0}
-.split-col-p1{border-right:1px solid var(--bd)}
-.split-header{font-family:var(--mo);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;margin:-14px -14px 12px;border-bottom:1px solid var(--bd)}
-.split-header-p1{background:rgba(0,212,255,.06);color:var(--ac)}
-.split-header-p2{background:rgba(255,149,0,.06);color:var(--wn)}
-
+.out{flex:1;overflow-y:auto;padding:18px}
 .emp{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;opacity:.3}
-.emp-ic{font-size:32px}
+.emp-ic{font-size:34px}
 .emp-tx{font-family:var(--mo);font-size:12px;color:var(--dm);text-align:center;line-height:1.8}
-.ld{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
+.ld{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px}
 .ld.on{display:flex}
-.sp{position:relative;width:48px;height:48px}
+.sp{position:relative;width:56px;height:56px}
 .sp-r{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--bd2)}
 .sp-r:nth-child(1){border-top-color:var(--ac);animation:sp 1s linear infinite}
-.sp-r:nth-child(2){inset:7px;border-top-color:var(--ac);animation:sp 1.5s linear infinite reverse;opacity:.5}
+.sp-r:nth-child(2){inset:8px;border-top-color:var(--ac);animation:sp 1.5s linear infinite reverse;opacity:.5}
 @keyframes sp{to{transform:rotate(360deg)}}
 .sp-t{font-family:var(--mo);font-size:12px;color:var(--dm);letter-spacing:.05em}
-.sp-s{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.7;text-align:center;max-width:240px;line-height:1.5}
-
-/* Phase 2 loading inside split */
-.p2-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:12px}
-
+.sp-s{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.7;text-align:center;max-width:280px;line-height:1.6}
 .rs{display:none}.rs.on{display:block}
-.sec{margin-bottom:12px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;animation:fu .35s ease forwards;opacity:0}
-@keyframes fu{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* ── SPLIT LAYOUT ── */
+.out-wrap{flex:1;display:flex;overflow:hidden;position:relative}
+.pane{flex:1;overflow-y:auto;padding:16px;min-width:0;transition:flex .3s ease}
+.pane-p1{border-right:1px solid var(--bd)}
+.pane-p2{position:relative}
+.pane-hdr{font-family:var(--mo);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;margin:-16px -16px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.pane-hdr-p1{background:rgba(0,212,255,.05);color:var(--ac)}
+.pane-hdr-p2{background:rgba(255,149,0,.05);color:var(--wn)}
+.p2-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,12,15,.85);backdrop-filter:blur(2px)}
+.p2-overlay.hidden{display:none}
+.p2-msg{font-family:var(--mo);font-size:11px;color:var(--dm);letter-spacing:.05em}
+.p2-sub{font-family:var(--mo);font-size:10px;color:var(--dm);opacity:.6}
+.ocr-prog{font-family:var(--mo);font-size:10px;color:var(--ac);margin-top:4px}
+.sec{margin-bottom:14px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;animation:fu .35s ease forwards;opacity:0}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .sec.c-wn{border-color:rgba(255,149,0,.35)}.sec.c-dg{border-color:rgba(255,59,59,.35)}.sec.c-ok{border-color:rgba(52,199,89,.25)}.sec.c-th{border-color:rgba(0,212,255,.35)}
-.sh{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sf2);border-bottom:1px solid var(--bd)}
+.sh{display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--sf2);border-bottom:1px solid var(--bd)}
 .sec.c-wn .sh{background:var(--wn-d)}.sec.c-dg .sh{background:var(--dg-d)}.sec.c-ok .sh{background:var(--ok-d)}.sec.c-th .sh{background:rgba(0,212,255,.06)}
-.si{font-size:12px}.st{font-family:var(--mo);font-size:10px;font-weight:600;color:var(--br);letter-spacing:.04em;flex:1}
-.stag{font-family:var(--mo);font-size:9px;padding:2px 5px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--dm);border:1px solid var(--bd2)}
+.si{font-size:13px}.st{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--br);letter-spacing:.04em;flex:1}
+.stag{font-family:var(--mo);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--dm);border:1px solid var(--bd2)}
 .bg-grid{display:grid;grid-template-columns:1fr 1px 1fr}
-.bc{padding:10px 12px}
-.bdv{background:var(--bd);margin:6px 0}
-.bt{font-family:var(--mo);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--bd)}
+.bc{padding:11px 13px}
+.bdv{background:var(--bd);margin:8px 0}
+.bt{font-family:var(--mo);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
 .bja .bt{color:var(--rd);border-color:rgba(255,107,107,.2)}.ben .bt{color:var(--bl);border-color:rgba(116,185,255,.2)}
-.md{font-size:12px;line-height:1.75}
+.md{font-size:13px;line-height:1.8}
 .md strong{color:var(--br);font-weight:600}
-.md ul{padding-left:14px;margin:3px 0}.md li{margin-bottom:2px}
-.md code{font-family:var(--mo);font-size:10px;background:var(--sf2);padding:1px 4px;border-radius:3px;color:var(--ac)}
-.wl{display:flex;align-items:flex-start;gap:6px;background:var(--wn-d);border:1px solid rgba(255,149,0,.25);border-radius:4px;padding:6px 10px;margin:5px 0;font-family:var(--mo);font-size:10px;color:var(--wn);line-height:1.5}
+.md ul{padding-left:16px;margin:4px 0}.md li{margin-bottom:3px}
+.md code{font-family:var(--mo);font-size:11px;background:var(--sf2);padding:1px 5px;border-radius:3px;color:var(--ac)}
+.wl{display:flex;align-items:flex-start;gap:7px;background:var(--wn-d);border:1px solid rgba(255,149,0,.25);border-radius:5px;padding:7px 11px;margin:6px 0;font-family:var(--mo);font-size:11px;color:var(--wn);line-height:1.6}
 @keyframes blink{50%{opacity:0}}
 .spin-sm{display:inline-block;width:9px;height:9px;border:1.5px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0;vertical-align:middle}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
@@ -137,7 +154,7 @@ input[type=file]{display:none}
 <body>
 <div class="hdr">
   <div class="hdr-ic">📡</div>
-  <span class="hdr-tt">RAPID MAIL RISK SCANNER</span>
+  <span class="hdr-tt">DOCUMENT RISK SCANNER</span>
   <div class="hdr-r">
     <span id="pb" class="badge b-p1" style="display:none"></span>
     <span id="rb" class="badge" style="display:none"></span>
@@ -145,23 +162,39 @@ input[type=file]{display:none}
   </div>
 </div>
 <div class="main">
-  <!-- LEFT -->
   <div class="left">
+
+    <!-- 使い方ガイド -->
+    <div class="setup" id="setupGuide">
+      <div class="setup-title">⚡ 初回セットアップ（1回だけ）</div>
+      <div class="setup-step">
+        <b>1.</b> Chromeを開く<br>
+        <b>2.</b> URLバーに以下を入力してEnter：<br>
+        <code>chrome://flags/#block-insecure-private-network-requests</code><br>
+        <b>3.</b> <b>Disabled</b> に変更 → 再起動<br>
+        <b>4.</b> このHTMLをダブルクリックで開く<br>
+        <b>5.</b> APIキーを入力してドロップ
+      </div>
+    </div>
+
     <div class="dz" id="dz">
       <div class="dz-ic">📨</div>
-      <div class="dz-tx"><strong>.eml をドロップ</strong><span>ドロップで即解析開始</span></div>
+      <div class="dz-tx"><strong>ファイルをドロップ</strong><span>.eml .docx .xlsx .pptx .pdf 画像 .txt</span></div>
     </div>
-    <input type="file" id="fi" accept=".eml,.msg">
+    <input type="file" id="fi" accept=".eml,.msg,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.pdf,.txt,.png,.jpg,.jpeg,.gif,.webp">
+
     <div class="fc" id="fc"><div class="fc-n" id="fcn"></div><div class="fc-m" id="fcm"></div></div>
     <div class="es" id="es"><div class="es-hdr" id="es-hdr"></div><div class="es-body" id="es-body"></div></div>
+
     <div class="hp" id="hp">
       <div class="hl">Headers</div>
       <div id="hrows"></div>
-      <div id="ats" style="display:none;margin-top:4px">
-        <div class="hl" style="margin-bottom:2px">Attachments</div>
+      <div id="ats" style="display:none;margin-top:5px">
+        <div class="hl" style="margin-bottom:3px">Attachments</div>
         <div class="chips" id="ach"></div>
       </div>
     </div>
+
     <div class="ak-w">
       <div class="ak-l">ANTHROPIC API KEY</div>
       <div class="ak-r">
@@ -170,6 +203,7 @@ input[type=file]{display:none}
       </div>
       <div class="ak-h" id="akh">APIキーを入力してください</div>
     </div>
+
     <div class="acts">
       <button class="btn bp1" id="p1" disabled>⚡ Phase 1 — Rapid Scan</button>
       <button class="btn bp2" id="p2" disabled>🔬 Phase 2 — Deep Dive + 添付全文</button>
@@ -177,15 +211,15 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <!-- RIGHT -->
   <div class="right">
     <div class="ob"><span class="ob-l">Analysis Output</span></div>
     <div class="out-wrap" id="outWrap">
-      <!-- Single mode (Phase 1) -->
-      <div class="out-single" id="outSingle">
+      <!-- LEFT PANE: Phase 1 result (or empty state) -->
+      <div class="pane pane-p1" id="paneP1">
+        <div class="pane-hdr pane-hdr-p1" id="paneP1Hdr" style="display:none">⚡ PHASE 1 — Rapid Scan</div>
         <div class="emp" id="emp">
           <div class="emp-ic">📭</div>
-          <div class="emp-tx">.eml をドロップして<br>Phase 1 スキャンを実行</div>
+        <div class="emp-tx">ファイルをドロップして<br>Phase 1 スキャンを実行</div>
         </div>
         <div class="ld" id="ld">
           <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
@@ -194,30 +228,39 @@ input[type=file]{display:none}
         </div>
         <div class="rs" id="rs"></div>
       </div>
-      <!-- Split mode (Phase 1 left | Phase 2 right) -->
-      <div class="out-split" id="outSplit">
-        <div class="split-col split-col-p1" id="splitP1">
-          <div class="split-header split-header-p1">⚡ PHASE 1 — Rapid Scan</div>
-          <div id="splitP1Content"></div>
-        </div>
-        <div class="split-col" id="splitP2">
-          <div class="split-header split-header-p2">🔬 PHASE 2 — Deep Dive</div>
-          <div id="splitP2Content">
-            <div class="p2-loading" id="p2Loading">
-              <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
-              <div class="sp-t">Deep Dive 実行中...</div>
-              <div class="sp-s" id="p2LoadingMsg"></div>
-            </div>
-          </div>
+      <!-- RIGHT PANE: Phase 2 result (hidden until Phase 2 runs) -->
+      <div class="pane pane-p2" id="paneP2" style="display:none">
+        <div class="pane-hdr pane-hdr-p2">🔬 PHASE 2 — Deep Dive</div>
+        <div class="rs" id="rs2"></div>
+        <!-- Loading overlay shown while Phase 2 runs -->
+        <div class="p2-overlay" id="p2Overlay">
+          <div class="sp"><div class="sp-r"></div><div class="sp-r"></div></div>
+          <div class="p2-msg" id="p2Msg">🔬 Deep Dive 実行中...</div>
+          <div class="p2-sub" id="p2Sub"></div>
+          <div class="ocr-prog" id="ocrProg"></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 <script>
+// ── FILE TYPE DETECTION ──────────────────────────────────────
+function getFileType(file){
+  const n=file.name.toLowerCase();
+  if(n.endsWith('.eml')||n.endsWith('.msg'))return'eml';
+  if(n.endsWith('.docx')||n.endsWith('.doc'))return'docx';
+  if(n.endsWith('.xlsx')||n.endsWith('.xls'))return'xlsx';
+  if(n.endsWith('.pptx')||n.endsWith('.ppt'))return'pptx';
+  if(n.endsWith('.pdf'))return'pdf';
+  if(n.match(/\.(png|jpg|jpeg|gif|webp)$/))return'image';
+  if(n.endsWith('.txt'))return'txt';
+  return'unknown';
+}
+function ftBadge(ft){const map={eml:['EML','ft-eml'],docx:['DOCX','ft-doc'],xlsx:['XLSX','ft-xls'],pptx:['PPTX','ft-ppt'],pdf:['PDF','ft-pdf'],image:['IMG','ft-img'],txt:['TXT','ft-txt'],unknown:['???','ft-txt']};const[l,c]=map[ft]||['???','ft-txt'];return`<span class="ft-badge ${c}">${l}</span>`;}
+
 // ── EML PARSER ────────────────────────────────────────────────
 function parseEml(raw){
-  const norm=raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const norm=raw.replace(/\r\n/g,'\n');
   const out={from:'',to:'',cc:'',subject:'',date:'',textBody:'',htmlBody:'',inlineImages:[],attachments:[],rh:{}};
   const si=norm.indexOf('\n\n');
   if(si===-1){out.textBody=norm;return out;}
@@ -318,7 +361,7 @@ async function extractDocx(b64){
         i=ds+Math.max(cSz,0);
       }else i++;
     }
-    return results.join('\n\n').substring(0,12000)||null;
+    return results.join('\n\n').substring(0,10000)||null;
   }catch(e){return null;}
 }
 async function inflateRaw(c){
@@ -329,16 +372,25 @@ async function inflateRaw(c){
   for(const c of chunks){out.set(c,off);off+=c.length;}return out;
 }
 
-// ── API CALL via Cloudflare Worker ────────────────────────────
+// ── API CALL (direct browser, CORS bypass) ────────────────────
 const WORKER_URL='https://shrill-night-ad6b.hidden-heart-fabb.workers.dev/';
-async function callApi(messages,system,maxTokens){
+async function callApi(messages, system, maxTokens){
   const key=aki.value.trim();
+  // Use fetch with the official browser-direct header
   const resp=await fetch(WORKER_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
     body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:maxTokens||4000,system:system,messages:messages})
   });
-  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error((err.error?.message)||`HTTP ${resp.status}`);}
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    throw new Error((err.error?.message)||`HTTP ${resp.status}`);
+  }
   const data=await resp.json();
   if(data.error)throw new Error(data.error.message);
   return data.content?.[0]?.text||'';
@@ -346,15 +398,15 @@ async function callApi(messages,system,maxTokens){
 
 // ── OCR ───────────────────────────────────────────────────────
 async function ocrImg(b64,mimeType){
+  const {b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
   return callApi([{role:'user',content:[
-    {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
-    {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
+    {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
+    {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。レイアウトを保ち、見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
   ]}],null,2000);
 }
 
 // ── STATE ─────────────────────────────────────────────────────
 let P=null,RAW='',docxTexts={},ocrTexts={},extracting=false;
-let p1Result=null; // Store Phase 1 result for split view
 const $=id=>document.getElementById(id);
 const dz=$('dz'),fi=$('fi'),fc=$('fc'),fcn=$('fcn'),fcm=$('fcm');
 const es=$('es'),esHdr=$('es-hdr'),esBody=$('es-body');
@@ -363,8 +415,8 @@ const aki=$('aki'),akt=$('akt'),akh=$('akh');
 const p1=$('p1'),p2=$('p2'),cl=$('cl');
 const pb=$('pb'),rb=$('rb');
 const emp=$('emp'),ld=$('ld'),rs=$('rs'),spt=$('spt'),sps=$('sps');
-const outSingle=$('outSingle'),outSplit=$('outSplit');
-const splitP1Content=$('splitP1Content'),splitP2Content=$('splitP2Content'),p2Loading=$('p2Loading'),p2LoadingMsg=$('p2LoadingMsg');
+const paneP1=$('paneP1'),paneP2=$('paneP2'),rs2=$('rs2'),p2Overlay=$('p2Overlay'),p2Msg=$('p2Msg'),p2Sub=$('p2Sub'),ocrProg=$('ocrProg');
+const setupGuide=$('setupGuide');
 
 // API key
 const sk=sessionStorage.getItem('rmrs');if(sk){aki.value=sk;vk(sk);}
@@ -375,6 +427,8 @@ function vk(v){
   if(!v){akh.textContent='APIキーを入力してください';return;}
   if(!v.startsWith('sk-ant-')){aki.classList.add('ng');akh.textContent='⚠ sk-ant- で始まるキーを入力';akh.classList.add('ng');return;}
   aki.classList.add('ok');akh.textContent='✓ 設定済み（セッション中のみ保持）';akh.classList.add('ok');
+  // Hide setup guide once key is entered
+  if(setupGuide)setupGuide.style.display='none';
 }
 
 // Drop zone
@@ -386,28 +440,111 @@ fi.addEventListener('change',e=>{if(e.target.files[0])lf(e.target.files[0]);});
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ── LOAD & AUTO-EXTRACT ───────────────────────────────────────
+let currentFileType='eml';
+let directContent=''; // for non-eml files
+
 function lf(file){
-  const rd=new FileReader();
-  rd.onload=async e=>{
-    RAW=e.target.result;P=parseEml(RAW);
-    docxTexts={};ocrTexts={};extracting=true;p1Result=null;
-    // Reset to single mode
-    outSingle.style.display='block';outSplit.classList.remove('on');
-    fcn.textContent=file.name;
-    fcm.textContent=(file.size/1024).toFixed(1)+' KB · '+new Date().toLocaleTimeString('ja-JP');
-    fc.classList.add('on');
-    showHeaders(P);
-    setStatus('run','⚙ 解析中...',[]);
-    es.classList.add('on');
-    await autoExtract(P);
-  };
-  rd.readAsText(file,'utf-8');
+  currentFileType=getFileType(file);
+  directContent='';
+  P=null;RAW='';docxTexts={};ocrTexts={};extracting=true;p1Json=null;
+  if(paneP2)paneP2.style.display='none';
+  if(paneP1)paneP1.style.flex='1';
+  const _h=document.getElementById('paneP1Hdr');if(_h)_h.style.display='none';
+  if(rs2)rs2.innerHTML='';
+  if(p2Overlay)p2Overlay.classList.add('hidden');
+
+  fcn.textContent=file.name;
+  fcm.innerHTML=(file.size/1024).toFixed(1)+' KB · '+new Date().toLocaleTimeString('ja-JP')+' '+ftBadge(currentFileType);
+  fc.classList.add('on');
+  setStatus('run','⚙ 解析中...',[]);
+  es.classList.add('on');
+  showEmp();
+
+  if(currentFileType==='eml'){
+    const rd=new FileReader();
+    rd.onload=async e=>{RAW=e.target.result;P=parseEml(RAW);showHeaders(P);await autoExtract(P);};
+    rd.readAsText(file,'utf-8');
+  } else if(currentFileType==='txt'){
+    const rd=new FileReader();
+    rd.onload=async e=>{directContent=e.target.result;await autoExtractDirect(file,directContent,currentFileType);};
+    rd.readAsText(file,'utf-8');
+  } else {
+    // Binary files: read as base64
+    const rd=new FileReader();
+    rd.onload=async e=>{
+      const b64=e.target.result.split(',')[1];
+      await autoExtractBinary(file,b64,currentFileType);
+    };
+    rd.readAsDataURL(file);
+  }
+}
+
+async function autoExtractDirect(file,text,ft){
+  extracting=false;
+  directContent=text;
+  const rows=[mkRow('📝',file.name,text.length+'文字','tg-ok','✓ 取得','r-main')];
+  setStatus('ok','✓ テキスト取得完了 — スキャン可能',rows);
+  p1.disabled=false;p2.disabled=false;
+}
+
+async function autoExtractBinary(file,b64,ft){
+  const rows=[];
+  const key=aki.value.trim();
+
+  if(ft==='docx'){
+    rows.push(mkRow('📎',file.name,'解析中...','tg-run','<span class="spin-sm"></span>','r-main'));
+    setStatus('run','⚙ docx解析中...',rows);
+    const txt=await extractDocx(b64);
+    if(txt&&txt.length>50){directContent=txt;updRow('r-main',(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');}
+    else{updRow('r-main','テキスト抽出失敗','tg-err','✗');}
+  } else if(ft==='xlsx'){
+    rows.push(mkRow('📊',file.name,'解析中...','tg-run','<span class="spin-sm"></span>','r-main'));
+    setStatus('run','⚙ xlsx解析中...',rows);
+    const txt=await extractXlsx(b64);
+    if(txt&&txt.length>10){directContent=txt;updRow('r-main',(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');}
+    else{updRow('r-main','テキスト抽出失敗','tg-err','✗');}
+  } else if(ft==='pptx'){
+    rows.push(mkRow('📽',file.name,'解析中...','tg-run','<span class="spin-sm"></span>','r-main'));
+    setStatus('run','⚙ pptx解析中...',rows);
+    const txt=await extractPptx(b64);
+    if(txt&&txt.length>10){directContent=txt;updRow('r-main',(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ 抽出');}
+    else{updRow('r-main','テキスト抽出失敗','tg-err','✗');}
+  } else if(ft==='pdf'){
+    if(key.startsWith('sk-ant-')){
+      rows.push(mkRow('📄',file.name,'OCR中...','tg-run','<span class="spin-sm"></span>','r-main'));
+      setStatus('run','⚙ PDF OCR中...',rows);
+      try{
+        const txt=await extractViaVision(b64,'application/pdf','このPDFに含まれるすべてのテキストを正確に書き起こしてください。表・数値・日付を含めてすべての内容を忠実に出力してください。');
+        if(txt&&txt.length>10){directContent=txt;updRow('r-main',(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ OCR完了');}
+        else updRow('r-main','OCR失敗','tg-err','✗');
+      }catch(e){updRow('r-main','OCRエラー','tg-err','✗');}
+    }else{
+      rows.push(mkRow('📄',file.name,'APIキー必要','tg-skip','要APIキー','r-main'));
+    }
+  } else if(ft==='image'){
+    const mt=file.type||'image/jpeg';
+    if(key.startsWith('sk-ant-')){
+      rows.push(mkRow('🖼',file.name,'OCR中...','tg-run','<span class="spin-sm"></span>','r-main'));
+      setStatus('run','⚙ 画像OCR中...',rows);
+      try{
+        const txt=await extractViaVision(b64,mt,'この画像に含まれるすべてのテキストを正確に書き起こしてください。推論・要約不要。テキストのみ出力。');
+        if(txt&&txt.length>10){directContent=txt;updRow('r-main',(txt.length/1000).toFixed(1)+'K文字','tg-ok','✓ OCR完了');}
+        else updRow('r-main','OCR失敗','tg-err','✗');
+      }catch(e){updRow('r-main','OCRエラー','tg-err','✗');}
+    }else{
+      rows.push(mkRow('🖼',file.name,'APIキー必要','tg-skip','要APIキー','r-main'));
+    }
+  }
+
+  extracting=false;
+  const ok=directContent&&directContent.length>20;
+  setStatus(ok?'ok':'warn',ok?'✓ コンテンツ取得完了 — スキャン可能':'⚠ コンテンツ取得できず',rows);
+  p1.disabled=false;p2.disabled=false;
 }
 
 async function autoExtract(p){
   const key=aki.value.trim();
   const rows=[];
-
   // 1. Body text
   let body=p.textBody&&p.textBody.trim().length>20?p.textBody.trim():'';
   if(!body&&p.htmlBody&&p.htmlBody.trim().length>20)body=h2t(p.htmlBody);
@@ -415,12 +552,12 @@ async function autoExtract(p){
   else rows.push(mkRow('⚠️','本文テキスト','抽出不能','tg-err','EMPTY','r-body'));
   setStatus('run','⚙ 解析中...',rows);
 
-  // 2. Docx auto-extract (background, non-blocking for Phase 1)
+  // 2. Docx auto-extract
   for(const att of p.attachments){
     if(!att.name.match(/\.docx?$/i)&&!(att.mimeType||'').match(/word|officedocument/i))continue;
     if(!att.data)continue;
     const rid='r-'+att.name.replace(/\W/g,'_').substring(0,20);
-    rows.push(mkRow('📎',att.name.substring(0,24),'解析中...','tg-run','<span class="spin-sm"></span>',rid));
+    rows.push(mkRow('📎',att.name.substring(0,26),'解析中...','tg-run','<span class="spin-sm"></span>',rid));
     setStatus('run','⚙ docx解析中...',rows);
     const txt=await extractDocx(att.data);
     if(txt&&txt.length>50){
@@ -431,27 +568,22 @@ async function autoExtract(p){
     }
   }
 
-  // 3. Inline images — OCR only if key present, skip silently if too many
-  const maxOcr=3; // limit to avoid timeout
-  let ocrCount=0;
+  // 3. Inline images — auto OCR
   for(let i=0;i<p.inlineImages.length;i++){
     const img=p.inlineImages[i];
     const rid='r-img'+i;
-    if(key.startsWith('sk-ant-')&&ocrCount<maxOcr){
-      rows.push(mkRow('🖼',img.name.substring(0,24),'OCR中...','tg-run','<span class="spin-sm"></span>',rid));
-      setStatus('run',`⚙ OCR (${i+1}/${Math.min(p.inlineImages.length,maxOcr)})...`,rows);
+    if(key.startsWith('sk-ant-')){
+      rows.push(mkRow('🖼',img.name.substring(0,26),'OCR中...','tg-run','<span class="spin-sm"></span>',rid));
+      setStatus('run','⚙ OCR実行中...',rows);
       try{
         const txt=await ocrImg(img.b64,img.mimeType);
         ocrTexts[i]=txt;
         updRow(rid,txt.length+'文字','tg-ok','✓ OCR完了');
-        ocrCount++;
       }catch(e){
-        updRow(rid,'OCRスキップ','tg-skip','—');
+        updRow(rid,'OCRエラー: '+e.message.substring(0,30),'tg-err','✗');
       }
-    }else if(ocrCount>=maxOcr){
-      rows.push(mkRow('🖼',img.name.substring(0,24),'Phase2で解析','tg-skip','→P2'));
     }else{
-      rows.push(mkRow('🖼',img.name.substring(0,24),'APIキー未入力','tg-skip','待機'));
+      rows.push(mkRow('🖼',img.name.substring(0,26),'APIキー入力後に自動OCR','tg-skip','待機'));
     }
   }
 
@@ -461,7 +593,7 @@ async function autoExtract(p){
   const parts=[];
   if(hasBody)parts.push('本文'+body.length+'文字');
   if(hasDocx)parts.push('添付'+Object.keys(docxTexts).length+'件');
-  if(hasOcr)parts.push('OCR'+ocrCount+'件');
+  if(hasOcr)parts.push('OCR '+Object.values(ocrTexts).filter(t=>t&&t.length>10).length+'件');
   setStatus(ok?'ok':'warn',ok?'✓ '+parts.join(' / ')+' — スキャン可能':'⚠ コンテンツ取得できず',rows);
   p1.disabled=false;p2.disabled=false;
   showEmp();
@@ -484,42 +616,46 @@ function showEmp(){emp.style.display='flex';ld.classList.remove('on');rs.classLi
 function showLd(t,s){emp.style.display='none';ld.classList.add('on');rs.classList.remove('on');spt.textContent=t;sps.textContent=s||'';}
 function showRs(){emp.style.display='none';ld.classList.remove('on');rs.classList.add('on');}
 cl.addEventListener('click',()=>{
-  P=null;RAW='';docxTexts={};ocrTexts={};extracting=false;p1Result=null;
+  P=null;RAW='';docxTexts={};ocrTexts={};extracting=false;p1Json=null;directContent='';currentFileType='eml';
   fc.classList.remove('on');es.classList.remove('on');hp.classList.remove('on');
   p1.disabled=true;p2.disabled=true;fi.value='';
   pb.style.display='none';rb.style.display='none';
-  outSingle.style.display='block';outSplit.classList.remove('on');
+  if(paneP2)paneP2.style.display='none';
+  if(paneP1)paneP1.style.flex='1';
+  const h1=document.getElementById('paneP1Hdr');if(h1)h1.style.display='none';
+  if(rs2)rs2.innerHTML='';
+  if(p2Overlay)p2Overlay.classList.add('hidden');
   showEmp();
 });
 p1.addEventListener('click',()=>run(1));
 p2.addEventListener('click',()=>run(2));
 
-// ── SYSTEM PROMPTS ────────────────────────────────────────────
-const SYS_P1=`You are a Risk-Aware Email Analysis Engine for NTT DC REIT Manager.
-HONESTY RULE: Analyze ONLY the content explicitly provided. Never infer or fabricate.
+// ── SYSTEM PROMPT ─────────────────────────────────────────────
+const SYS=`You are a Risk-Aware Email Analysis Engine for NTT DC REIT Manager.
+HONESTY RULE: Analyze ONLY the content explicitly provided. Never infer or fabricate content not in the input. If body is empty, state that clearly.
 Return ONLY a valid JSON object — no markdown, no text outside JSON.
-{"thread_summary":{"ja":"string","en":"string"},"executive_summary":{"ja":"string","en":"string"},"about":{"ja":"string","en":"string"},"signal":{"ja":"string","en":"string","level":"High|Medium|Low|Unknown"},"structural":{"ja":"string","en":"string","attachments_detected":true,"attachment_names":["name"],"thread_dependency":"Low|Medium|High"},"dependency":{"ja":"string","en":"string","unsafe":true},"governance":{"ja":"string","en":"string"},"next_step":{"ja":"string","en":"string"}}
-thread_summary: WHO→WHOM, WHAT each said, CURRENT STATUS. Most important section.
-signal.level High if: topside, DTA, revaluation, fair value, audit adj, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adj, valuation report.
-dependency.unsafe: true if body empty OR missing attachments OR prior thread needed.
-governance: Specific items — KPMG, Deloitte, Board, ARC, SGX, REIT, DPU, NAV, valuation, fee.
-next_step: Specific concrete actions only. ja=business Japanese. en=financial English.`;
-
-const SYS_P2=`You are a Risk-Aware Email Analysis Engine for NTT DC REIT Manager performing DEEP DIVE analysis.
-Analyze ALL provided content including attachment text thoroughly. Extract specific figures, dates, names, risks.
-HONESTY RULE: Only analyze provided content. Never fabricate.
-Return ONLY a valid JSON object — no markdown, no text outside JSON.
-{"thread_summary":{"ja":"string","en":"string"},"executive_summary":{"ja":"string","en":"string"},"about":{"ja":"string","en":"string"},"signal":{"ja":"string","en":"string","level":"High|Medium|Low|Unknown"},"structural":{"ja":"string","en":"string","attachments_detected":true,"attachment_names":["name"],"thread_dependency":"Low|Medium|High"},"dependency":{"ja":"string","en":"string","unsafe":true},"governance":{"ja":"string","en":"string"},"next_step":{"ja":"string","en":"string"}}
-thread_summary: Detailed situation brief — WHO→WHOM, specific content of what was said, exact pending decisions.
-executive_summary: More detailed than Phase 1. Include specific figures from attachments if available.
-signal.level High if: topside, DTA, revaluation, fair value, audit adj, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adj, valuation report.
-governance: Deep analysis — cite specific amounts, dates, accounting standards found in content.
-next_step: Prioritized concrete actions with specific references to content found.
+{
+  "thread_summary":{"ja":"string","en":"string"},
+  "executive_summary":{"ja":"string","en":"string"},
+  "about":{"ja":"string","en":"string"},
+  "signal":{"ja":"string","en":"string","level":"High|Medium|Low|Unknown"},
+  "structural":{"ja":"string","en":"string","attachments_detected":true,"attachment_names":["name"],"thread_dependency":"Low|Medium|High"},
+  "dependency":{"ja":"string","en":"string","unsafe":true},
+  "governance":{"ja":"string","en":"string"},
+  "next_step":{"ja":"string","en":"string"}
+}
+thread_summary: WHO sent to WHOM, WHAT each said, CURRENT STATUS of pending decisions. Most important section.
+signal.level High if: topside, DTA, revaluation, fair value, audit adjustment, SGX, ARC, IAS37, withholding tax, DPU, NAV, material adjustment, valuation report.
+dependency.unsafe: true if body empty OR missing attachments OR prior thread context needed.
+governance: Specific items only — KPMG, Deloitte, Board, ARC, SGX, REIT, DPU, NAV, valuation, fee.
+next_step: Specific concrete actions only.
 ja=business Japanese. en=financial English.`;
 
 // ── RUN ───────────────────────────────────────────────────────
+let p1Json = null; // store Phase 1 result for split view
+
 async function run(phase){
-  if(!P)return;
+  if(!P && !directContent)return;
   const key=aki.value.trim();
   if(!key.startsWith('sk-ant-')){alert('APIキーを入力してください（sk-ant-...）');return;}
   if(extracting){
@@ -533,134 +669,159 @@ async function run(phase){
   rb.style.display='none';
 
   // Build content
-  let bodyText=P.textBody&&P.textBody.trim().length>20?P.textBody.trim():(P.htmlBody&&P.htmlBody.trim().length>20?h2t(P.htmlBody):'');
-  const ocrArr=Object.entries(ocrTexts).filter(([,t])=>t&&t.trim().length>10).map(([i,t])=>`[画像OCR #${parseInt(i)+1}]\n${t}`);
-  if(ocrArr.length>0)bodyText+=(bodyText?'\n\n':'')+ocrArr.join('\n\n');
-
-  let attContent='';
-  // Always include pre-extracted docx
-  for(const[fname,txt]of Object.entries(docxTexts)){
-    if(txt&&txt.length>50)attContent+=`\n\n=== ATTACHMENT: ${fname} ===\n${txt.substring(0,phase===1?3000:10000)}`;
-  }
-  // Phase 2: try remaining unextracted docx + all images OCR
-  if(phase===2){
-    // Extract any remaining docx
-    for(const att of P.attachments){
-      if(!att.name.match(/\.docx?$/i)&&!(att.mimeType||'').match(/word|officedocument/i))continue;
-      if(docxTexts[att.name]||!att.data)continue;
-      p2LoadingMsg.textContent=att.name+' を解析中...';
-      const txt=await extractDocx(att.data);
-      if(txt&&txt.length>50){docxTexts[att.name]=txt;attContent+=`\n\n=== ATTACHMENT: ${att.name} ===\n${txt.substring(0,10000)}`;}
-    }
-    // OCR remaining images (beyond the 3 done in autoExtract)
-    for(let i=0;i<P.inlineImages.length;i++){
-      if(ocrTexts[i])continue; // already done
-      const img=P.inlineImages[i];
-      p2LoadingMsg.textContent=`画像OCR ${i+1}/${P.inlineImages.length}...`;
-      try{
-        const txt=await ocrImg(img.b64,img.mimeType);
-        ocrTexts[i]=txt;
-        if(txt&&txt.length>10)bodyText+=`\n\n[画像OCR #${i+1}]\n${txt}`;
-      }catch(e){}
-    }
-  }
-
-  const bodyStatus=bodyText.trim().length>20?`BODY_STATUS: OK (${bodyText.trim().length}文字)`:'BODY_STATUS: EMPTY';
-  const emailContent=`FROM: ${P.from}\nTO: ${P.to}\nCC: ${P.cc}\nDATE: ${P.date}\nSUBJECT: ${P.subject}\nATTACHMENTS: ${P.attachments.map(a=>a.name).join(', ')||'None'}\n${bodyStatus}\n\n=== EMAIL BODY ===\n${bodyText.trim()||'[EMPTY]'}${attContent}`;
+  const {emailContent, bodyEmpty} = buildContent(phase);
 
   if(phase===1){
-    // Single mode
-    outSingle.style.display='block';outSplit.classList.remove('on');
+    // ── PHASE 1: single pane, full width ──────────────────────
+    paneP2.style.display='none';
+    paneP1.style.flex='1';
+    document.getElementById('paneP1Hdr').style.display='none';
     showLd('⚡ Rapid Scan 実行中...','');
     try{
-      const raw=await callApi([{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],SYS_P1,4000);
-      const j=parseJson(raw);if(!j)return;
-      p1Result=j; // save for split view later
-      render(j,bodyText.trim().length<20,'rs');
-    }catch(e){errOut('APIエラー: '+e.message,'rs');}
+      const j = await callAndParse(emailContent, 'PHASE 1 RAPID SCAN', 4000);
+      if(!j)return;
+      p1Json = j;
+      renderInto(j, bodyEmpty, rs);
+      showRs();
+      updateRiskBadge(j);
+    }catch(e){ errOut('APIエラー: '+e.message, rs); showRs(); }
 
   }else{
-    // Split mode: show Phase 1 on left, load Phase 2 on right
-    if(!p1Result){
-      // No Phase 1 yet — run Phase 1 first quickly
+    // ── PHASE 2: split layout ─────────────────────────────────
+    // Show Phase 1 on left immediately
+    paneP2.style.display='flex';
+    paneP2.style.flexDirection='column';
+    paneP1.style.flex='1';
+    document.getElementById('paneP1Hdr').style.display='flex';
+
+    if(!p1Json){
+      // Phase 1 not run yet — show loading on left, run it first
       showLd('⚡ Phase 1 を先に実行中...','');
       try{
-        const raw=await callApi([{role:'user',content:'PHASE 1 RAPID SCAN. Return valid JSON only.\n\n'+emailContent}],SYS_P1,4000);
-        p1Result=parseJson(raw);
-      }catch(e){p1Result=null;}
+        const j = await callAndParse(emailContent, 'PHASE 1 RAPID SCAN', 4000);
+        if(j){ p1Json=j; renderInto(j, bodyEmpty, rs); showRs(); updateRiskBadge(j); }
+      }catch(e){ showRs(); }
+    } else {
+      // Phase 1 already done — keep it visible
+      showRs();
     }
 
-    // Switch to split layout
-    outSingle.style.display='none';outSplit.classList.add('on');
+    // Show Phase 2 pane with loading overlay
+    p2Overlay.classList.remove('hidden');
+    rs2.innerHTML='';
+    p2Msg.textContent='🔬 Deep Dive 実行中...';
+    p2Sub.textContent='';
+    ocrProg.textContent='';
 
-    // Render Phase 1 on left
-    splitP1Content.innerHTML='';
-    if(p1Result){
-      renderInto(p1Result,bodyText.trim().length<20,splitP1Content);
-    }else{
-      splitP1Content.innerHTML='<div style="padding:12px;font-family:var(--mo);font-size:11px;color:var(--dm)">Phase 1 データなし</div>';
-    }
+    // Run OCR on remaining images (Phase 2 does ALL images)
+    await runPhase2Ocr(p2Sub, ocrProg);
 
-    // Show loading on right
-    p2Loading.style.display='flex';
-    p2LoadingMsg.textContent='Deep Dive 実行中...';
-    splitP2Content.innerHTML='';
-    splitP2Content.appendChild(p2Loading);
+    // Rebuild content with OCR results
+    const {emailContent: ec2, bodyEmpty: be2} = buildContent(2);
+    p2Sub.textContent='Claude API 呼び出し中...';
 
-    // Run Phase 2
     try{
-      const raw=await callApi([{role:'user',content:'PHASE 2 DEEP DIVE. Thorough analysis of ALL content including attachments. Return valid JSON only.\n\n'+emailContent}],SYS_P2,5000);
-      const j=parseJson(raw);
-      if(j){
-        p2Loading.style.display='none';
-        const p2div=document.createElement('div');
-        splitP2Content.appendChild(p2div);
-        renderInto(j,bodyText.trim().length<20,p2div);
-        // Update risk badge with Phase 2 level
-        const lvl=(j.signal?.level||'').toLowerCase();
-        rb.style.display='inline-block';
-        if(lvl==='high'){rb.className='badge b-hi';rb.textContent='⬆ HIGH RISK';}
-        else if(lvl==='medium'){rb.className='badge b-me';rb.textContent='→ MEDIUM RISK';}
-        else if(lvl==='low'){rb.className='badge b-lo';rb.textContent='✓ LOW RISK';}
-      }
+      const j2 = await callAndParse(ec2, 'PHASE 2 DEEP DIVE', 5000);
+      p2Overlay.classList.add('hidden');
+      if(!j2)return;
+      renderInto(j2, be2, rs2);
+      updateRiskBadge(j2);
     }catch(e){
-      p2Loading.style.display='none';
-      errOut('Deep Dive エラー: '+e.message,'splitP2Content');
+      p2Overlay.classList.add('hidden');
+      errOut('Deep Dive エラー: '+e.message, rs2);
     }
   }
 }
 
-function parseJson(raw){
+async function runPhase2Ocr(subEl, progEl){
+  if(!P)return;
+  const key=aki.value.trim();
+  const total=P.inlineImages.length;
+  if(total===0)return;
+  let done=0;
+  for(let i=0;i<total;i++){
+    if(ocrTexts[i]&&ocrTexts[i].length>5){done++;continue;} // already done
+    const img=P.inlineImages[i];
+    progEl.textContent=`画像OCR ${i+1}/${total}...`;
+    try{
+      const txt=await ocrImgWithRetry(img.b64, img.mimeType, key);
+      if(txt&&txt.length>5)ocrTexts[i]=txt;
+      done++;
+      progEl.textContent=`OCR完了 ${done}/${total}`;
+    }catch(e){
+      progEl.textContent=`OCR ${i+1} スキップ`;
+    }
+  }
+  progEl.textContent=done>0?`✓ OCR ${done}件完了`:'';
+}
+
+async function ocrImgWithRetry(b64, mimeType, key, retries=2){
+  const {b64:rb,mt:rmt}=await resizeImageB64(b64,mimeType,1200);
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      return await callApi([{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:rmt,data:rb}},
+        {type:'text',text:'この画像に含まれるすべてのテキストを正確に書き起こしてください。見えるすべての文字を忠実に出力してください。推論・要約・補完は不要。テキストのみ出力。'}
+      ]}],null,2000);
+    }catch(e){
+      if(attempt===retries)throw e;
+      await new Promise(r=>setTimeout(r,1500*(attempt+1)));
+    }
+  }
+}
+
+function buildContent(phase){
+  let emailContent='', bodyEmpty=false;
+  if(currentFileType==='eml'&&P){
+    let bodyText=P.textBody&&P.textBody.trim().length>20?P.textBody.trim():(P.htmlBody&&P.htmlBody.trim().length>20?h2t(P.htmlBody):'');
+    const ocrArr=Object.entries(ocrTexts).filter(([,t])=>t&&t.trim().length>10).map(([i,t])=>`[画像OCR #${parseInt(i)+1}]\n${t}`);
+    if(ocrArr.length>0)bodyText+=(bodyText?'\n\n':'')+ocrArr.join('\n\n');
+    let attContent='';
+    for(const[fname,txt]of Object.entries(docxTexts)){
+      if(txt&&txt.length>50)attContent+=`\n\n=== ATTACHMENT: ${fname} ===\n${txt.substring(0,phase===1?4000:10000)}`;
+    }
+    bodyEmpty=bodyText.trim().length<20;
+    const bodyStatus=bodyEmpty?'BODY_STATUS: EMPTY':`BODY_STATUS: OK (${bodyText.trim().length}文字)`;
+    emailContent=`FROM: ${P.from}\nTO: ${P.to}\nCC: ${P.cc}\nDATE: ${P.date}\nSUBJECT: ${P.subject}\nATTACHMENTS: ${P.attachments.map(a=>a.name).join(', ')||'None'}\n${bodyStatus}\n\n=== EMAIL BODY ===\n${bodyText.trim()||'[EMPTY]'}${attContent}`;
+  }else{
+    const body=directContent||'[コンテンツ未取得]';
+    bodyEmpty=body.length<20;
+    emailContent=`FILE TYPE: ${(currentFileType||'unknown').toUpperCase()}\nCONTENT_STATUS: ${bodyEmpty?'EMPTY':'OK ('+body.length+'文字)'}\n\n=== DOCUMENT CONTENT ===\n${body.substring(0,phase===1?6000:12000)}`;
+  }
+  return {emailContent, bodyEmpty};
+}
+
+async function callAndParse(content, label, maxTokens){
+  const raw=await callApi([{role:'user',content:label+'. Return valid JSON only.\n\n'+content}],SYS,maxTokens);
   try{
     let s=raw.replace(/```json\n?|```/g,'').trim();
     const f=s.indexOf('{'),l=s.lastIndexOf('}');
     if(f!==-1&&l>f)s=s.substring(f,l+1);
     return JSON.parse(s);
-  }catch(e){errOut('JSON parseエラー: '+e.message+'\n\n'+raw.substring(0,300),'rs');return null;}
+  }catch(e){
+    errOut('JSON parseエラー: '+e.message+'\n\n'+raw.substring(0,400), rs);
+    return null;
+  }
 }
 
-// ── RENDER ────────────────────────────────────────────────────
-function render(j,bodyEmpty,targetId){
-  const target=$(targetId);
-  if(!target)return;
-  target.innerHTML='';
+function updateRiskBadge(j){
   const lvl=(j.signal?.level||'').toLowerCase();
   rb.style.display='inline-block';
   if(lvl==='high'){rb.className='badge b-hi';rb.textContent='⬆ HIGH RISK';}
   else if(lvl==='medium'){rb.className='badge b-me';rb.textContent='→ MEDIUM RISK';}
   else if(lvl==='low'){rb.className='badge b-lo';rb.textContent='✓ LOW RISK';}
   else{rb.className='badge';rb.style.cssText='background:var(--sf2);color:var(--dm);border:1px solid var(--bd2)';rb.textContent='? UNKNOWN';}
-  renderInto(j,bodyEmpty,target);
-  if(targetId==='rs')showRs();
 }
 
-function renderInto(j,bodyEmpty,container){
-  let d=0;
+// ── RENDER ────────────────────────────────────────────────────
+function renderInto(j, bodyEmpty, target){
+  target.innerHTML='';
   const lvl=(j.signal?.level||'').toLowerCase();
+  let d=0;
   if(bodyEmpty){
     const w=document.createElement('div');w.className='sec c-dg';w.style.animationDelay=d+'ms';
-    w.innerHTML=`<div class="sh"><span class="si">⚠️</span><span class="st">本文が空 / Body Empty</span></div><div style="padding:10px 12px"><div class="wl"><span>⚠</span><span>本文テキストが抽出できませんでした。</span></div></div>`;
-    container.appendChild(w);d+=50;
+    w.innerHTML=`<div class="sh"><span class="si">⚠️</span><span class="st">本文が空 / Body Empty</span></div><div style="padding:12px 14px"><div class="wl"><span>⚠</span><span>本文テキストが抽出できませんでした。</span></div></div>`;
+    target.appendChild(w);d+=50;
   }
   const defs=[
     ['💬','スレッド状況 / Thread Status','c-th','thread_summary'],
@@ -678,9 +839,11 @@ function renderInto(j,bodyEmpty,container){
     if(key==='signal'){const lbl=lvl==='high'?'高（High）':lvl==='medium'?'中（Medium）':lvl==='low'?'低（Low）':'不明';ja=`**${lbl}**\n${ja}`;en=`**${val.level||'Unknown'}**\n${en}`;}
     if(key==='structural'&&val.attachment_names){const an=(val.attachment_names||[]).join(', ')||'None';ja=`添付: ${val.attachments_detected?'**あり**':'なし'} | ${an}\nスレッド依存度: ${val.thread_dependency}\n\n${ja}`;en=`Attachments: ${val.attachments_detected?'**Yes**':'No'} | ${an}\nThread dependency: ${val.thread_dependency}\n\n${en}`;}
     if(key==='dependency'&&val.unsafe){ja+='\n\n⚠ 現メール情報のみでの意思決定は安全ではありません';en+='\n\n⚠ Not safe to decide based only on current email view.';}
-    const s=mks(icon,title,cls,d);s.appendChild(bi(ja,en));container.appendChild(s);d+=50;
+    const s=mks(icon,title,cls,d);s.appendChild(bi(ja,en));target.appendChild(s);d+=50;
   }
 }
+
+function render(j,bodyEmpty){renderInto(j,bodyEmpty,rs);showRs();updateRiskBadge(j);}
 
 function mks(icon,title,cls,delay){
   const s=document.createElement('div');s.className='sec '+(cls||'');s.style.animationDelay=delay+'ms';
@@ -694,12 +857,12 @@ function md(t){
   if(!t)return'';
   return esc(t).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/(⚠[^\n]+)/g,'<div class="wl"><span>⚠</span><span>$1</span></div>').replace(/^[-•]\s(.+)$/gm,'<li>$1</li>').replace(/(<li>.*?<\/li>\n?)+/gs,m=>'<ul>'+m+'</ul>').replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
 }
-function errOut(msg,targetId){
-  const html=`<div class="sec c-dg"><div class="sh"><span class="si">⚠</span><span class="st">Error</span></div><div style="padding:10px 12px"><pre style="font-family:var(--mo);font-size:10px;color:var(--dg);white-space:pre-wrap">${esc(msg)}</pre></div></div>`;
-  const t=$(targetId);
-  if(t){t.innerHTML=html;}
-  if(targetId==='rs')showRs();
+function errOut(msg, target){
+  const el=target||rs;
+  el.innerHTML=`<div class="sec c-dg"><div class="sh"><span class="si">⚠</span><span class="st">Error</span></div><div style="padding:12px 14px"><pre style="font-family:var(--mo);font-size:11px;color:var(--dg);white-space:pre-wrap">${esc(msg)}</pre></div></div>`;
+  if(target===rs||!target)showRs();
 }
+
 </script>
 </body>
 </html>
